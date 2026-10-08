@@ -113,3 +113,17 @@ Use this comprehensive checklist to validate Contact Form 7 configurations, form
 - [ ] Verify GitHub Actions workflow (`.github/workflows/cf7-audit.yml`) executes successfully.
 
 
+
+
+---
+
+## Automated Tests
+
+```bash
+cd mcp-server
+npm run build
+npm test                          # unit + tool tests (mocked WordPress)
+./integration/run.sh              # real WordPress + Contact Form 7 in Docker (needs docker)
+```
+
+`integration/run.sh` starts throwaway MariaDB and WordPress containers, installs Contact Form 7 with WP-CLI, creates an Application Password, and runs `integration/integration.test.mjs` against it. Containers are removed on exit.

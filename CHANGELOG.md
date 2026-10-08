@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] - 2026-10-08
+
+### Added
+- Marketplace manifest (`.claude-plugin/marketplace.json`) and slash commands (`/audit`, `/new-form`, `/health-check`, `/diagnose-delivery`).
+- `SECURITY.md`, `.gitignore`.
+- Tests for the WordPress client, backup manager, templates and all 21 MCP tools.
+- Docker-based integration test against real WordPress + Contact Form 7.
+- CI: plugin manifest validation and a check that committed `dist/` is current.
+
+### Fixed
+- **Create/update/restore never saved on a real site.** CF7's REST API only persists when the request carries `context: "save"`; the client now sends it.
+- **Reads had the wrong shape.** CF7 nests `form`, `mail`, `messages` etc. under `properties` (with `form`/`additional_settings` as `{content}` objects). The client now flattens them, so audits, health checks and diffs see real form data.
+- MCP server path now uses `${CLAUDE_PLUGIN_ROOT}`.
+
 ## [1.3.0] - 2026-09-24
 
 ### Added

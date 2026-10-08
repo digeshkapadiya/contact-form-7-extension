@@ -4,6 +4,26 @@
 
 import { WPConnectionConfig, WPCoreInfo, CF7FormItem } from './types.js';
 
+/**
+ * CF7's REST API nests form/mail/mail_2/messages/additional_settings under `properties`.
+ * Flatten them so the rest of the codebase can read them at the top level.
+ */
+function normalizeForm(raw: any): CF7FormItem {
+  if (raw && typeof raw === 'object' && raw.properties && typeof raw.properties === 'object') {
+    const { properties, ...rest } = raw;
+    const flat: Record<string, unknown> = { ...properties, ...rest };
+    // On reads CF7 returns `form` and `additional_settings` as { content, ... } objects.
+    for (const key of ['form', 'additional_settings']) {
+      const v = flat[key] as any;
+      if (v && typeof v === 'object' && typeof v.content === 'string') {
+        flat[key] = v.content;
+      }
+    }
+    return flat as unknown as CF7FormItem;
+  }
+  return raw as CF7FormItem;
+}
+
 export class WordPressClient {
   private baseUrl: string;
   private authHeader?: string;
@@ -123,7 +143,7 @@ export class WordPressClient {
       throw new Error(`Failed to retrieve form ID ${formId} (HTTP ${res.status}): ${body}`);
     }
 
-    return await res.json() as CF7FormItem;
+    return normalizeForm(await res.json());
   }
 
   /**
@@ -140,7 +160,7 @@ export class WordPressClient {
     const endpoint = `${this.baseUrl}/wp-json/contact-form-7/v1/contact-forms`;
     const res = await this.fetchWithTimeout(endpoint, {
       method: 'POST',
-      body: JSON.stringify(params)
+      body: JSON.stringify({ ...params, context: 'save' })
     });
 
     if (!res.ok) {
@@ -148,7 +168,7 @@ export class WordPressClient {
       throw new Error(`Failed to create CF7 form (HTTP ${res.status}): ${body}`);
     }
 
-    return await res.json() as CF7FormItem;
+    return normalizeForm(await res.json());
   }
 
   /**
@@ -161,7 +181,7 @@ export class WordPressClient {
     const endpoint = `${this.baseUrl}/wp-json/contact-form-7/v1/contact-forms/${formId}`;
     const res = await this.fetchWithTimeout(endpoint, {
       method: 'POST', // CF7 REST API accepts POST for updates
-      body: JSON.stringify(params)
+      body: JSON.stringify({ ...params, context: 'save' })
     });
 
     if (!res.ok) {
@@ -169,6 +189,6 @@ export class WordPressClient {
       throw new Error(`Failed to update CF7 form ID ${formId} (HTTP ${res.status}): ${body}`);
     }
 
-    return await res.json() as CF7FormItem;
+    return normalizeForm(await res.json());
   }
 }

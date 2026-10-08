@@ -63,8 +63,9 @@ test('WordPressClient: getForm/createForm/updateForm use correct endpoints and t
     assert.strictEqual((await c.getForm(5)).id, 5);
     await c.createForm({ title: 't', form: '[submit]' });
     assert.strictEqual(m.calls[1].opts.method, 'POST');
-    assert.deepStrictEqual(JSON.parse(m.calls[1].opts.body), { title: 't', form: '[submit]' });
+    assert.deepStrictEqual(JSON.parse(m.calls[1].opts.body), { title: 't', form: '[submit]', context: 'save' });
     await c.updateForm(5, { title: 'n' });
+    assert.strictEqual(JSON.parse(m.calls[2].opts.body).context, 'save', 'CF7 only persists with context=save');
     assert.ok(m.calls[2].url.endsWith('/contact-forms/5'));
     await assert.rejects(() => c.getForm(99), /HTTP 404/);
     await assert.rejects(() => c.updateForm(99, {}), /HTTP 404/);
@@ -99,4 +100,19 @@ test('TemplateManager: all templates are listed, retrievable, and internally con
     const used = [...(t.data.mail.body || '').matchAll(/\[([a-z][\w-]*)\]/g)].map(m => m[1]);
     for (const u of used) assert.ok(names.has(u), `${t.id}: mail tag [${u}] has no form field`);
   }
+});
+
+test('WordPressClient: flattens CF7 `properties` into top-level fields', async () => {
+  const m = mockFetch(() => ({ body: {
+    id: 3, slug: 'c', title: 'T', locale: 'en_US',
+    properties: { form: { content: '[submit]', fields: [] }, mail: { recipient: 'a@b.c' }, mail_2: {}, messages: {}, additional_settings: { content: 'x: y', settings: [] } }
+  } }));
+  try {
+    const f = await new WordPressClient({ baseUrl: 'https://x.test' }).getForm(3);
+    assert.strictEqual(f.id, 3);
+    assert.strictEqual(f.form, '[submit]');
+    assert.strictEqual(f.mail.recipient, 'a@b.c');
+    assert.strictEqual(f.additional_settings, 'x: y');
+    assert.strictEqual(f.properties, undefined);
+  } finally { m.restore(); }
 });

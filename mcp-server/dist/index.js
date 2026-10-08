@@ -12,7 +12,7 @@ import { registerTools } from './tools/index.js';
 async function main() {
     const server = new McpServer({
         name: 'cf7-developer-assistant',
-        version: '1.3.0'
+        version: '1.3.1'
     });
     const siteManager = new MultiSiteManager();
     const wpClient = new WordPressClient();
