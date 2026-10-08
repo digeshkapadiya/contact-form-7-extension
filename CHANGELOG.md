@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.3] - 2026-10-08
+
+### Added
+- `userConfig` in `plugin.json`: Claude Code now prompts for site URL, username and application password (password stored as sensitive).
+
+### Fixed
+- With no site configured the server no longer falls back to `http://localhost` and returns a 404; it says to run `wp_add_site` or configure the plugin. Unset or unresolved config values are ignored.
+- **Safety:** the site created from `WORDPRESS_URL` was always labeled `local`, which bypassed the production lock on `cf7_test_submission`. It is now `production` unless the URL is localhost/.local/.test.
+
 ## [1.3.2] - 2026-10-08
 
 ### Fixed

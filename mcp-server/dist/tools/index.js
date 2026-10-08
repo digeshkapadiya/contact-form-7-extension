@@ -10,6 +10,7 @@ import { CF7DiffEngine } from '../backup/diff.js';
 import { IntegrationTester } from '../integrations/tester.js';
 import { IntegrationPhpGenerator } from '../integrations/php-generator.js';
 import { TemplateManager } from '../templates/manager.js';
+import { readEnv } from '../wordpress/env.js';
 export function registerTools(server, wpClient, backupManager, siteManager, integrationManager) {
     // Helper to get client for currently selected site or fallback
     const getActiveClient = (siteId) => {
@@ -31,7 +32,7 @@ export function registerTools(server, wpClient, backupManager, siteManager, inte
         }
         return {
             client: wpClient,
-            baseUrl: process.env.WORDPRESS_URL || 'http://localhost'
+            baseUrl: readEnv('WORDPRESS_URL') || ''
         };
     };
     /**

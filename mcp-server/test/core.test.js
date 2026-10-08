@@ -116,3 +116,32 @@ test('WordPressClient: flattens CF7 `properties` into top-level fields', async (
     assert.strictEqual(f.properties, undefined);
   } finally { m.restore(); }
 });
+
+test('WordPressClient: with no site configured, fails with a clear message (no localhost fallback)', async () => {
+  const saved = { u: process.env.WORDPRESS_URL };
+  process.env.WORDPRESS_URL = '${user_config.wp_site_url}'; // unresolved plugin placeholder
+  try {
+    const c = new WordPressClient();
+    const r = await c.checkConnection();
+    assert.strictEqual(r.connected, false);
+    assert.match(r.error, /No WordPress site connected/);
+    await assert.rejects(() => c.listForms(), /wp_add_site/);
+  } finally {
+    if (saved.u === undefined) delete process.env.WORDPRESS_URL; else process.env.WORDPRESS_URL = saved.u;
+  }
+});
+
+test('MultiSiteManager: env site is production unless the URL is local', async () => {
+  const { MultiSiteManager } = await import('../dist/multisite/manager.js');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cf7ms-'));
+  const saved = process.env.WORDPRESS_URL;
+  try {
+    process.env.WORDPRESS_URL = 'https://client.example.com';
+    assert.strictEqual(new MultiSiteManager(path.join(dir, 's.json')).getSite('default').environment, 'production');
+    process.env.WORDPRESS_URL = 'http://localhost:8080';
+    assert.strictEqual(new MultiSiteManager(path.join(dir, 's.json')).getSite('default').environment, 'local');
+  } finally {
+    if (saved === undefined) delete process.env.WORDPRESS_URL; else process.env.WORDPRESS_URL = saved;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

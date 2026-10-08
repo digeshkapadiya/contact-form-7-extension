@@ -15,6 +15,7 @@ import { IntegrationManager } from '../integrations/manager.js';
 import { IntegrationTester } from '../integrations/tester.js';
 import { IntegrationPhpGenerator } from '../integrations/php-generator.js';
 import { TemplateManager } from '../templates/manager.js';
+import { readEnv } from '../wordpress/env.js';
 
 export function registerTools(
   server: any,
@@ -43,7 +44,7 @@ export function registerTools(
     }
     return {
       client: wpClient,
-      baseUrl: process.env.WORDPRESS_URL || 'http://localhost'
+      baseUrl: readEnv('WORDPRESS_URL') || ''
     };
   };
 

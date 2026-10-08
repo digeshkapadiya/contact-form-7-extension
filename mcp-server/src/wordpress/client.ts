@@ -3,6 +3,7 @@
  */
 
 import { WPConnectionConfig, WPCoreInfo, CF7FormItem } from './types.js';
+import { readEnv } from './env.js';
 
 /**
  * CF7's REST API nests form/mail/mail_2/messages/additional_settings under `properties`.
@@ -30,12 +31,12 @@ export class WordPressClient {
   private timeoutMs: number;
 
   constructor(config?: Partial<WPConnectionConfig>) {
-    const rawUrl = config?.baseUrl || process.env.WORDPRESS_URL || 'http://localhost';
+    const rawUrl = config?.baseUrl || readEnv('WORDPRESS_URL') || '';
     this.baseUrl = rawUrl.replace(/\/+$/, '');
     this.timeoutMs = config?.timeoutMs || 15000;
 
-    const username = config?.username || process.env.WORDPRESS_USERNAME;
-    const appPassword = config?.applicationPassword || process.env.WORDPRESS_APP_PASSWORD;
+    const username = config?.username || readEnv('WORDPRESS_USERNAME');
+    const appPassword = config?.applicationPassword || readEnv('WORDPRESS_APP_PASSWORD');
 
     if (config?.authHeader) {
       this.authHeader = config.authHeader;
@@ -47,6 +48,11 @@ export class WordPressClient {
   }
 
   private async fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+    if (!this.baseUrl) {
+      throw new Error(
+        'No WordPress site connected. Add one with the wp_add_site tool, or configure the plugin (site URL, username, application password).'
+      );
+    }
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), this.timeoutMs);
 

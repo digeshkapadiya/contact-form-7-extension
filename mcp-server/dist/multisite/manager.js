@@ -3,6 +3,7 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
+import { readEnv } from '../wordpress/env.js';
 export class MultiSiteManager {
     configPath;
     sites = new Map();
@@ -13,15 +14,15 @@ export class MultiSiteManager {
     }
     loadSites() {
         // 1. Load from primary environment variables as default site
-        const envUrl = process.env.WORDPRESS_URL;
+        const envUrl = readEnv('WORDPRESS_URL');
         if (envUrl) {
             this.sites.set('default', {
                 id: 'default',
                 name: 'Default Environment Site',
                 baseUrl: envUrl,
-                username: process.env.WORDPRESS_USERNAME,
-                applicationPassword: process.env.WORDPRESS_APP_PASSWORD,
-                environment: 'local'
+                username: readEnv('WORDPRESS_USERNAME'),
+                applicationPassword: readEnv('WORDPRESS_APP_PASSWORD'),
+                environment: /localhost|127\.0\.0\.1|\.local\b|\.test\b/i.test(envUrl) ? 'local' : 'production'
             });
             this.activeSiteId = 'default';
         }

@@ -64,6 +64,10 @@ contact-form-7/
 
 ## Live WordPress MCP Server Setup (Optional)
 
+When you enable the plugin, Claude Code asks for your **site URL**, **username** and **application password** (the password is stored as a sensitive value). You can change them later in `/plugin` → cf7-developer-assistant → Configure options. If you skip this, ask Claude to "add my WordPress site" and it will use the `wp_add_site` tool. Use a staging site first.
+
+Or set environment variables instead:
+
 To connect Claude directly to your live WordPress site, set environment variables:
 
 ```bash

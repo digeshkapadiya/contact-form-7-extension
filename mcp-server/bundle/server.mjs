@@ -21434,6 +21434,15 @@ var StdioServerTransport = class {
   }
 };
 
+// dist/wordpress/env.js
+function readEnv(name) {
+  const value = process.env[name]?.trim();
+  if (!value || /^\$\{.*\}$/.test(value)) {
+    return void 0;
+  }
+  return value;
+}
+
 // dist/wordpress/client.js
 function normalizeForm(raw) {
   if (raw && typeof raw === "object" && raw.properties && typeof raw.properties === "object") {
@@ -21454,11 +21463,11 @@ var WordPressClient = class {
   authHeader;
   timeoutMs;
   constructor(config2) {
-    const rawUrl = config2?.baseUrl || process.env.WORDPRESS_URL || "http://localhost";
+    const rawUrl = config2?.baseUrl || readEnv("WORDPRESS_URL") || "";
     this.baseUrl = rawUrl.replace(/\/+$/, "");
     this.timeoutMs = config2?.timeoutMs || 15e3;
-    const username = config2?.username || process.env.WORDPRESS_USERNAME;
-    const appPassword = config2?.applicationPassword || process.env.WORDPRESS_APP_PASSWORD;
+    const username = config2?.username || readEnv("WORDPRESS_USERNAME");
+    const appPassword = config2?.applicationPassword || readEnv("WORDPRESS_APP_PASSWORD");
     if (config2?.authHeader) {
       this.authHeader = config2.authHeader;
     } else if (username && appPassword) {
@@ -21467,6 +21476,9 @@ var WordPressClient = class {
     }
   }
   async fetchWithTimeout(url, options = {}) {
+    if (!this.baseUrl) {
+      throw new Error("No WordPress site connected. Add one with the wp_add_site tool, or configure the plugin (site URL, username, application password).");
+    }
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), this.timeoutMs);
     const headers = {
@@ -21659,15 +21671,15 @@ var MultiSiteManager = class {
     this.loadSites();
   }
   loadSites() {
-    const envUrl = process.env.WORDPRESS_URL;
+    const envUrl = readEnv("WORDPRESS_URL");
     if (envUrl) {
       this.sites.set("default", {
         id: "default",
         name: "Default Environment Site",
         baseUrl: envUrl,
-        username: process.env.WORDPRESS_USERNAME,
-        applicationPassword: process.env.WORDPRESS_APP_PASSWORD,
-        environment: "local"
+        username: readEnv("WORDPRESS_USERNAME"),
+        applicationPassword: readEnv("WORDPRESS_APP_PASSWORD"),
+        environment: /localhost|127\.0\.0\.1|\.local\b|\.test\b/i.test(envUrl) ? "local" : "production"
       });
       this.activeSiteId = "default";
     }
@@ -22753,7 +22765,7 @@ function registerTools(server, wpClient, backupManager, siteManager, integration
     }
     return {
       client: wpClient,
-      baseUrl: process.env.WORDPRESS_URL || "http://localhost"
+      baseUrl: readEnv("WORDPRESS_URL") || ""
     };
   };
   server.tool("wp_list_sites", "List all configured WordPress websites with connection status and environments.", {}, async () => {
@@ -23287,7 +23299,7 @@ function registerTools(server, wpClient, backupManager, siteManager, integration
 async function main() {
   const server = new McpServer({
     name: "cf7-developer-assistant",
-    version: "1.3.2"
+    version: "1.3.3"
   });
   const siteManager = new MultiSiteManager();
   const wpClient = new WordPressClient();
