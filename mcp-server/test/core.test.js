@@ -155,6 +155,7 @@ test('WordPressClient: CF7 6.2 "$this" fatal is explained as an authorization pr
       assert.match(err.message, /not authorized/);
       assert.match(err.message, /will not fix it/);
       assert.match(err.message, /wp_connect_start/);
+      assert.match(err.message, /LOGIN password/);
       return true;
     });
   } finally { m.restore(); }

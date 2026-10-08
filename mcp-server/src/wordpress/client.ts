@@ -26,7 +26,7 @@ function normalizeForm(raw: any): CF7FormItem {
 }
 
 const AUTH_HELP =
-  'WordPress did not accept the credentials. Common causes: (1) the site is not HTTPS (Application Passwords are disabled over plain HTTP unless the site is local); ' +
+  'WordPress did not accept the credentials. Common causes: (0) the normal WordPress LOGIN password was used; the REST API only accepts an Application Password (Users > Profile > Application Passwords), never the login password; (1) the site is not HTTPS (Application Passwords are disabled over plain HTTP unless the site is local); ' +
   '(2) the host strips the Authorization header (add `RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]` to .htaccess, or ask the host); ' +
   '(3) a security plugin or host setting disables Application Passwords; (4) the Application Password was revoked or mistyped. ' +
   'Fix: reconnect with wp_connect_start (browser approval) after resolving the above.';
