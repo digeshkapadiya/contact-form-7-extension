@@ -21458,6 +21458,18 @@ function normalizeForm(raw) {
   }
   return raw;
 }
+var AUTH_HELP = "WordPress did not accept the credentials. Common causes: (1) the site is not HTTPS (Application Passwords are disabled over plain HTTP unless the site is local); (2) the host strips the Authorization header (add `RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]` to .htaccess, or ask the host); (3) a security plugin or host setting disables Application Passwords; (4) the Application Password was revoked or mistyped. Fix: reconnect with wp_connect_start (browser approval) after resolving the above.";
+function explainHttpFailure(prefix, status, body) {
+  if (/Using \$this when not in object context/.test(body) && /contact-form-7/.test(body)) {
+    return new Error(`${prefix} (HTTP ${status}): the request was not authorized. Contact Form 7 6.2 reports this as a PHP fatal ("Using $this when not in object context") instead of a 403. Updating or rolling back Contact Form 7 will not fix it. ${AUTH_HELP}`);
+  }
+  if (status === 401)
+    return new Error(`${prefix} (HTTP 401): not authenticated. ${AUTH_HELP}`);
+  if (status === 403) {
+    return new Error(`${prefix} (HTTP 403): permission denied. The connected WordPress user must be able to edit Contact Form 7 forms (Administrator or Editor). If the user is correct, ${AUTH_HELP}`);
+  }
+  return new Error(`${prefix} (HTTP ${status}): ${body}`);
+}
 var WordPressClient = class {
   baseUrl;
   authHeader;
@@ -21517,8 +21529,35 @@ var WordPressClient = class {
       const coreInfo = await res.json();
       const namespaces = coreInfo.namespaces || [];
       const cf7Namespace = namespaces.find((ns) => ns.startsWith("contact-form-7/"));
+      let authenticated = false;
+      let authenticatedAs;
+      let authError;
+      if (!this.authHeader) {
+        authError = "No credentials are configured for this site. Connect with wp_connect_start.";
+      } else {
+        try {
+          const me = await this.fetchWithTimeout(`${this.baseUrl}/wp-json/wp/v2/users/me?context=edit`);
+          if (me.ok) {
+            const user = await me.json();
+            authenticated = true;
+            authenticatedAs = user?.slug || user?.name;
+            const caps = user?.capabilities;
+            if (caps && caps.wpcf7_edit_contact_forms === false) {
+              authenticated = false;
+              authError = `User "${authenticatedAs}" cannot edit Contact Form 7 forms. Connect as an Administrator or Editor.`;
+            }
+          } else {
+            authError = `HTTP ${me.status}. ${AUTH_HELP}`;
+          }
+        } catch (e) {
+          authError = `Could not verify credentials: ${e?.message || String(e)}`;
+        }
+      }
       return {
         connected: true,
+        authenticated,
+        authenticatedAs,
+        authError,
         siteName: coreInfo.name,
         wpVersion: coreInfo.version || void 0,
         hasCf7: !!cf7Namespace,
@@ -21540,7 +21579,7 @@ var WordPressClient = class {
     const res = await this.fetchWithTimeout(endpoint);
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Failed to list CF7 forms (HTTP ${res.status}): ${body}`);
+      throw explainHttpFailure(`Failed to list CF7 forms`, res.status, body);
     }
     const data = await res.json();
     return Array.isArray(data) ? data : [];
@@ -21553,7 +21592,7 @@ var WordPressClient = class {
     const res = await this.fetchWithTimeout(endpoint);
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Failed to retrieve form ID ${formId} (HTTP ${res.status}): ${body}`);
+      throw explainHttpFailure(`Failed to retrieve form ID ${formId}`, res.status, body);
     }
     return normalizeForm(await res.json());
   }
@@ -21568,7 +21607,7 @@ var WordPressClient = class {
     });
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Failed to create CF7 form (HTTP ${res.status}): ${body}`);
+      throw explainHttpFailure(`Failed to create CF7 form`, res.status, body);
     }
     return normalizeForm(await res.json());
   }
@@ -21584,7 +21623,7 @@ var WordPressClient = class {
     });
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Failed to update CF7 form ID ${formId} (HTTP ${res.status}): ${body}`);
+      throw explainHttpFailure(`Failed to update CF7 form ID ${formId}`, res.status, body);
     }
     return normalizeForm(await res.json());
   }
@@ -23543,13 +23582,14 @@ function registerTools(server, wpClient, backupManager, siteManager, integration
 async function main() {
   const server = new McpServer({
     name: "cf7-developer-assistant",
-    version: "1.3.5"
+    version: "1.3.6"
   }, {
     instructions: [
       "CONNECT FIRST: before any action on a WordPress site (listing, reading, auditing, creating, updating, testing forms), call wp_check_connection.",
       'If it reports connected: false or "No WordPress site connected", STOP. Do not draft-and-create. Ask the user for their site URL and whether it is staging or production (recommend staging first).',
       'Then connect with the browser flow: call wp_connect_start with the URL. It opens the WordPress admin approval page; tell the user to log in if asked and click "Yes, I approve of this connection". Then call wp_connect_complete. No password is copied or pasted.',
       "Fallbacks: /plugin -> cf7-developer-assistant -> Configure options (site URL, username, Application Password), or wp_add_site if the browser is not on the same computer as Claude Code.",
+      'wp_check_connection also reports authenticated. If authenticated is false, do NOT try to create or update forms: explain authError to the user and reconnect. A Contact Form 7 "Using $this when not in object context" fatal means the request was not authorized, not that Contact Form 7 needs updating.',
       "After wp_connect_complete reports connected and contactForm7Detected, show the existing forms and only then create or change anything.",
       "Never create or modify forms on a site the user has not confirmed."
     ].join("\n")

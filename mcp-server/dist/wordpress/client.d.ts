@@ -17,6 +17,9 @@ export declare class WordPressClient {
         wpVersion?: string;
         hasCf7: boolean;
         cf7Namespace?: string;
+        authenticated?: boolean;
+        authenticatedAs?: string;
+        authError?: string;
         error?: string;
     }>;
     /**

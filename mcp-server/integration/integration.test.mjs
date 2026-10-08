@@ -33,3 +33,21 @@ test('analyzer works on a form fetched from a real site', async () => {
   assert.strictEqual(typeof audit.healthScore, 'number');
   assert.ok(Array.isArray(audit.issues));
 });
+
+test('wrong credentials are reported clearly (no misleading PHP fatal advice)', async () => {
+  const bad = new WordPressClient({ baseUrl: process.env.WORDPRESS_URL, username: 'admin', applicationPassword: 'wrong wrong wrong wrong' });
+  const status = await bad.checkConnection();
+  assert.strictEqual(status.connected, true);
+  assert.strictEqual(status.authenticated, false, 'bad password must not count as authenticated');
+  assert.ok(status.authError);
+  await assert.rejects(() => bad.createForm({ title: 'x', form: '[submit]' }), err => {
+    assert.match(err.message, /not authori[sz]ed|not authenticated|permission denied/i);
+    assert.ok(!/\$this when not in object context\s*$/.test(err.message));
+    return true;
+  });
+});
+
+test('good credentials report authenticated', async () => {
+  const s = await client.checkConnection();
+  assert.strictEqual(s.authenticated, true, s.authError);
+});

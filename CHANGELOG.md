@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.6] - 2026-10-08
+
+### Fixed
+- **Misleading "Using $this when not in object context" error.** Contact Form 7 6.2 turns an unauthorized REST request into a PHP fatal (HTTP 500) instead of a 403. The plugin now explains that it is an authorization problem and lists the real causes (HTTPS, stripped Authorization header, disabled Application Passwords, wrong password, insufficient role) instead of leading users to update or roll back Contact Form 7.
+
+### Added
+- `wp_check_connection` now reports `authenticated`, `authenticatedAs` and `authError` by verifying the credentials against the site.
+- Integration tests for wrong credentials; integration environment now defaults to Contact Form 7 6.2.
+
 ## [1.3.5] - 2026-10-08
 
 ### Added

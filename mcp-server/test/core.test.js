@@ -145,3 +145,36 @@ test('MultiSiteManager: env site is production unless the URL is local', async (
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('WordPressClient: CF7 6.2 "$this" fatal is explained as an authorization problem', async () => {
+  const fatal = JSON.stringify({ code: 'internal_server_error', data: { status: 500, error: { message: 'Uncaught Error: Using $this when not in object context in /var/www/html/wp-content/plugins/contact-form-7/includes/rest-api.php:47' } } });
+  const m = mockFetch(() => ({ status: 500, body: fatal }));
+  try {
+    const c = new WordPressClient({ baseUrl: 'https://x.test', username: 'u', applicationPassword: 'bad' });
+    await assert.rejects(() => c.createForm({ title: 't', form: '[submit]' }), err => {
+      assert.match(err.message, /not authorized/);
+      assert.match(err.message, /will not fix it/);
+      assert.match(err.message, /wp_connect_start/);
+      return true;
+    });
+  } finally { m.restore(); }
+});
+
+test('WordPressClient: checkConnection reports rejected credentials and missing credentials', async () => {
+  let m = mockFetch(url => url.includes('/users/me') ? { status: 401, body: { code: 'rest_not_logged_in' } } : { body: { name: 'S', namespaces: ['contact-form-7/v1'] } });
+  try {
+    const bad = await new WordPressClient({ baseUrl: 'https://x.test', username: 'u', applicationPassword: 'p' }).checkConnection();
+    assert.strictEqual(bad.connected, true);
+    assert.strictEqual(bad.authenticated, false);
+    assert.match(bad.authError, /HTTPS|Authorization header/);
+    const none = await new WordPressClient({ baseUrl: 'https://x.test' }).checkConnection();
+    assert.strictEqual(none.authenticated, false);
+    assert.match(none.authError, /wp_connect_start/);
+  } finally { m.restore(); }
+  m = mockFetch(url => url.includes('/users/me') ? { body: { slug: 'admin' } } : { body: { name: 'S', namespaces: ['contact-form-7/v1'] } });
+  try {
+    const ok = await new WordPressClient({ baseUrl: 'https://x.test', username: 'u', applicationPassword: 'p' }).checkConnection();
+    assert.strictEqual(ok.authenticated, true);
+    assert.strictEqual(ok.authenticatedAs, 'admin');
+  } finally { m.restore(); }
+});

@@ -18,7 +18,7 @@ echo "Waiting for database..."
 for i in $(seq 1 60); do docker exec "$DB" mariadb-admin ping -h127.0.0.1 -uwp -pwp --silent >/dev/null 2>&1 && break; sleep 3; done
 for i in $(seq 1 30); do docker exec "$WP" test -f /var/www/html/wp-config.php && break; sleep 2; done
 $WPCLI core install --url="http://localhost:$PORT" --title=CF7IT --admin_user=admin --admin_password=adminpass --admin_email=a@example.com --skip-email
-$WPCLI plugin install contact-form-7 --version="${CF7_VERSION:-6.1.7}" --activate
+$WPCLI plugin install contact-form-7 --version="${CF7_VERSION:-6.2}" --activate
 $WPCLI rewrite structure '/%postname%/' --hard
 APP_PW=$($WPCLI user application-password create admin cf7-it --porcelain)
 export WORDPRESS_URL="http://localhost:$PORT" WORDPRESS_USERNAME=admin WORDPRESS_APP_PASSWORD="$APP_PW"

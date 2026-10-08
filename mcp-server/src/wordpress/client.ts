@@ -25,6 +25,29 @@ function normalizeForm(raw: any): CF7FormItem {
   return raw as CF7FormItem;
 }
 
+const AUTH_HELP =
+  'WordPress did not accept the credentials. Common causes: (1) the site is not HTTPS (Application Passwords are disabled over plain HTTP unless the site is local); ' +
+  '(2) the host strips the Authorization header (add `RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]` to .htaccess, or ask the host); ' +
+  '(3) a security plugin or host setting disables Application Passwords; (4) the Application Password was revoked or mistyped. ' +
+  'Fix: reconnect with wp_connect_start (browser approval) after resolving the above.';
+
+/** Turn raw REST failures into messages that name the real cause. */
+function explainHttpFailure(prefix: string, status: number, body: string): Error {
+  // Contact Form 7 6.2 has a bug: its "not allowed" branch uses $this inside a static closure,
+  // so an UNAUTHORIZED request becomes a PHP fatal (HTTP 500) instead of a 403.
+  if (/Using \$this when not in object context/.test(body) && /contact-form-7/.test(body)) {
+    return new Error(
+      `${prefix} (HTTP ${status}): the request was not authorized. Contact Form 7 6.2 reports this as a PHP fatal ` +
+      `("Using $this when not in object context") instead of a 403. Updating or rolling back Contact Form 7 will not fix it. ${AUTH_HELP}`
+    );
+  }
+  if (status === 401) return new Error(`${prefix} (HTTP 401): not authenticated. ${AUTH_HELP}`);
+  if (status === 403) {
+    return new Error(`${prefix} (HTTP 403): permission denied. The connected WordPress user must be able to edit Contact Form 7 forms (Administrator or Editor). If the user is correct, ${AUTH_HELP}`);
+  }
+  return new Error(`${prefix} (HTTP ${status}): ${body}`);
+}
+
 export class WordPressClient {
   private baseUrl: string;
   private authHeader?: string;
@@ -87,6 +110,9 @@ export class WordPressClient {
     wpVersion?: string;
     hasCf7: boolean;
     cf7Namespace?: string;
+    authenticated?: boolean;
+    authenticatedAs?: string;
+    authError?: string;
     error?: string;
   }> {
     try {
@@ -105,8 +131,36 @@ export class WordPressClient {
       const namespaces = coreInfo.namespaces || [];
       const cf7Namespace = namespaces.find(ns => ns.startsWith('contact-form-7/'));
 
+      let authenticated = false;
+      let authenticatedAs: string | undefined;
+      let authError: string | undefined;
+      if (!this.authHeader) {
+        authError = 'No credentials are configured for this site. Connect with wp_connect_start.';
+      } else {
+        try {
+          const me = await this.fetchWithTimeout(`${this.baseUrl}/wp-json/wp/v2/users/me?context=edit`);
+          if (me.ok) {
+            const user = (await me.json()) as any;
+            authenticated = true;
+            authenticatedAs = user?.slug || user?.name;
+            const caps = user?.capabilities;
+            if (caps && caps.wpcf7_edit_contact_forms === false) {
+              authenticated = false;
+              authError = `User "${authenticatedAs}" cannot edit Contact Form 7 forms. Connect as an Administrator or Editor.`;
+            }
+          } else {
+            authError = `HTTP ${me.status}. ${AUTH_HELP}`;
+          }
+        } catch (e: any) {
+          authError = `Could not verify credentials: ${e?.message || String(e)}`;
+        }
+      }
+
       return {
         connected: true,
+        authenticated,
+        authenticatedAs,
+        authError,
         siteName: coreInfo.name,
         wpVersion: (coreInfo as any).version || undefined,
         hasCf7: !!cf7Namespace,
@@ -130,7 +184,7 @@ export class WordPressClient {
 
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Failed to list CF7 forms (HTTP ${res.status}): ${body}`);
+      throw explainHttpFailure(`Failed to list CF7 forms`, res.status, body);
     }
 
     const data = await res.json();
@@ -146,7 +200,7 @@ export class WordPressClient {
 
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Failed to retrieve form ID ${formId} (HTTP ${res.status}): ${body}`);
+      throw explainHttpFailure(`Failed to retrieve form ID ${formId}`, res.status, body);
     }
 
     return normalizeForm(await res.json());
@@ -171,7 +225,7 @@ export class WordPressClient {
 
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Failed to create CF7 form (HTTP ${res.status}): ${body}`);
+      throw explainHttpFailure(`Failed to create CF7 form`, res.status, body);
     }
 
     return normalizeForm(await res.json());
@@ -192,7 +246,7 @@ export class WordPressClient {
 
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`Failed to update CF7 form ID ${formId} (HTTP ${res.status}): ${body}`);
+      throw explainHttpFailure(`Failed to update CF7 form ID ${formId}`, res.status, body);
     }
 
     return normalizeForm(await res.json());
