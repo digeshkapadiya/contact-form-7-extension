@@ -113,6 +113,15 @@ export WORDPRESS_APP_PASSWORD="xxxx xxxx xxxx xxxx xxxx xxxx"
 
 ## Installation
 
+### Method 0: Marketplace (recommended)
+
+```text
+/plugin marketplace add digeshkapadiya/contact-form-7-extension
+/plugin install cf7-developer-assistant@cf7-developer-tools
+```
+
+Slash commands: `/cf7-developer-assistant:audit`, `:new-form`, `:health-check`, `:diagnose-delivery`.
+
 ### Method 1: Local Installation in Claude Code
 
 Clone or copy this repository into your workspace or Claude configuration:
