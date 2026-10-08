@@ -1,0 +1,76 @@
+# Changelog
+
+All notable changes to the **CF7 Developer Assistant** plugin will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [1.3.0] - 2026-09-24
+
+### Added
+- **Phase 4 Integrations & Agency Automation**:
+  - **Ecosystem Integration Framework**: Support for Webhook, CRM (HubSpot, Salesforce, Zoho), Google Sheets, and Custom REST API connectors.
+  - `cf7_list_integrations`: List active integrations per form and site.
+  - `cf7_configure_integration`: Map CF7 fields to external payload parameters with custom transforms (`phone_digits`, `iso_date`, `trim`).
+  - `cf7_test_integration`: Pre-flight mapping validator and optional live endpoint HTTP test dispatcher.
+  - `cf7_generate_integration_code`: Generates production-ready, non-blocking WordPress PHP hooks (`wpcf7_mail_sent` via `wp_safe_remote_post`).
+  - **Agency Template System**:
+    - `cf7_list_templates`: Access pre-built templates (`contact-us`, `job-application`, `quote-request`, `support-ticket`).
+    - `cf7_apply_template`: Instantly scaffold forms across client sites.
+  - **CI/CD Linter & GitHub Actions**:
+    - CLI command `cf7-lint` / `npm run lint:cf7` to audit forms and mappings during automated build pipelines.
+    - GitHub Actions workflow (`.github/workflows/cf7-audit.yml`).
+- Added 4 new unit tests covering integration mapping, tester validation, PHP code generation, and template manager.
+
+## [1.2.0] - 2026-09-24
+
+### Added
+- **Phase 3 Advanced Automation, Monitoring & Diagnostics**:
+  - **Multi-Site Support**: Manage and audit multiple WordPress sites (`wp_list_sites`, `wp_add_site`, `wp_select_site`) with isolated credentials.
+  - **Automated Site-Wide Health Check**: `cf7_health_check` tool scanning all forms on a site and classifying findings into Confirmed Errors, Needs Review, and Clean Forms.
+  - **Safe Form Testing Engine**: `cf7_test_submission` tool executing synthetic submissions (valid, invalid email, missing required, custom) with production environment safety locks.
+  - **5-Layer Email Delivery Diagnostics**: `cf7_diagnose_delivery` tool evaluating CF7 tags, DMARC/SPF sender compliance, WordPress `wp_mail()`, SMTP providers, and spam filtering.
+  - **Snapshot Diff & Comparison Engine**: `cf7_diff_snapshots` tool producing field-by-field comparisons between live forms and saved backups with change explanations.
+  - **Analytics Status Inspection**: `cf7_get_analytics` tool auditing submission database logging status (Flamingo / DB logs).
+- Added comprehensive unit tests for MultiSiteManager, CF7DeliveryDiagnostics, and CF7DiffEngine.
+
+## [1.1.0] - 2026-09-24
+
+### Added
+- **Live WordPress MCP Server**: Production TypeScript MCP server for direct WordPress & CF7 REST API integration.
+- 8 Core MCP Tools:
+  - `wp_check_connection`: Verify site reachability, core version, and CF7 plugin detection.
+  - `cf7_list_forms`: List all forms with IDs and shortcodes.
+  - `cf7_get_form`: Retrieve complete form markup, mail tabs, and error messages.
+  - `cf7_audit_form`: Automated static diagnostic engine calculating Health Score (0-100) and flagging tag mismatches, DMARC errors, and missing spam protections.
+  - `cf7_create_form`: Safely create new forms via REST API.
+  - `cf7_update_form`: Update forms with automated pre-modification snapshot creation.
+  - `cf7_list_backups` & `cf7_restore_form`: Snapshot rollback and safety management.
+- Unit test suite for tag parsing, analyzer diagnostics, and backup manager.
+
+## [1.0.0] - 2026-09-24
+
+### Added
+- Initial production release of **CF7 Developer Assistant** for Claude Code.
+- Plugin manifest `.claude-plugin/plugin.json` supporting standard Claude Code plugin format.
+- 6 Core Skills:
+  - `cf7-create-form`: Semantic HTML scaffold, tag reference, pipes syntax, and mail template generator.
+  - `cf7-configure-mail`: Deliverability rules, sender domain enforcement, Mail (2) autoresponder, and tag mismatch audit.
+  - `cf7-debug-form`: Systematic diagnostic workflow for AJAX issues, REST API blockages, border response code decoding, and SMTP troubleshooting.
+  - `cf7-validation`: Built-in attribute validation and safe PHP server-side validation filters (`wpcf7_validate_*`).
+  - `cf7-security`: Defense-in-depth spam strategy (Honeypot, Akismet, reCAPTCHA v3 / Turnstile) and file upload hardening.
+  - `cf7-styling`: Modern Vanilla CSS design system (CSS variables, responsive grid, status borders) and Vanilla JS DOM event integration.
+- Production-ready Examples:
+  - Basic Contact Form (`examples/forms/basic-contact-form.md`)
+  - Job Application Form with Resume Upload (`examples/forms/job-application-form.md`)
+  - Quote & Estimate Request Form (`examples/forms/quote-request-form.md`)
+  - Custom Validation Hooks (`examples/php-snippets/custom-validation.php`)
+  - Anti-Spam & Security Hooks (`examples/php-snippets/spam-protection-hooks.php`)
+  - Dynamic Recipient Routing (`examples/php-snippets/dynamic-recipient-routing.php`)
+  - Responsive CSS Stylesheet (`examples/css/modern-cf7-styles.css`)
+  - Custom DOM Event Handlers (`examples/js/cf7-event-handlers.js`)
+- Comprehensive QA Checklist (`TESTING.md`).
+- Community Contribution Guidelines (`CONTRIBUTING.md`).
+- MIT License (`LICENSE`).

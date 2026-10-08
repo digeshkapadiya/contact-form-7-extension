@@ -1,0 +1,229 @@
+/**
+ * Modern Contact Form 7 Stylesheet
+ * Responsive, Accessible, and Themeable Vanilla CSS
+ */
+
+:root {
+  --cf7-primary: #2563eb;
+  --cf7-primary-hover: #1d4ed8;
+  --cf7-bg: #ffffff;
+  --cf7-surface: #f8fafc;
+  --cf7-text: #0f172a;
+  --cf7-label: #334155;
+  --cf7-border: #cbd5e1;
+  --cf7-border-focus: #2563eb;
+  --cf7-placeholder: #94a3b8;
+  --cf7-radius: 8px;
+  --cf7-success: #16a34a;
+  --cf7-error: #dc2626;
+  --cf7-warning: #d97706;
+  --cf7-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --cf7-shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.18);
+  --cf7-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Container */
+.wpcf7 {
+  max-width: 720px;
+  margin: 0 auto;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.wpcf7 * {
+  box-sizing: border-box;
+}
+
+/* Form Grid */
+.cf7-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: -8px;
+  margin-right: -8px;
+}
+
+.cf7-col-6 {
+  flex: 0 0 50%;
+  max-width: 50%;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.cf7-col-12 {
+  flex: 0 0 100%;
+  max-width: 100%;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+@media (max-width: 640px) {
+  .cf7-col-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+.cf7-form-group {
+  margin-bottom: 1.25rem;
+}
+
+/* Labels */
+.wpcf7 label,
+.cf7-form-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cf7-label);
+  margin-bottom: 0.375rem;
+}
+
+.wpcf7 .required {
+  color: var(--cf7-error);
+}
+
+/* Form Controls */
+.wpcf7 input[type="text"],
+.wpcf7 input[type="email"],
+.wpcf7 input[type="tel"],
+.wpcf7 input[type="url"],
+.wpcf7 input[type="number"],
+.wpcf7 input[type="date"],
+.wpcf7 select,
+.wpcf7 textarea {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.95rem;
+  color: var(--cf7-text);
+  background-color: var(--cf7-bg);
+  border: 1px solid var(--cf7-border);
+  border-radius: var(--cf7-radius);
+  box-shadow: var(--cf7-shadow-sm);
+  transition: var(--cf7-transition);
+  outline: none;
+}
+
+.wpcf7 input::placeholder,
+.wpcf7 textarea::placeholder {
+  color: var(--cf7-placeholder);
+}
+
+.wpcf7 input:focus,
+.wpcf7 select:focus,
+.wpcf7 textarea:focus {
+  border-color: var(--cf7-border-focus);
+  box-shadow: var(--cf7-shadow-focus);
+}
+
+.wpcf7 textarea {
+  min-height: 130px;
+  resize: vertical;
+}
+
+/* Checkboxes & Radios */
+.wpcf7 .wpcf7-checkbox,
+.wpcf7 .wpcf7-radio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin-top: 0.375rem;
+}
+
+.wpcf7-list-item {
+  margin: 0 !important;
+}
+
+.wpcf7-list-item label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: normal !important;
+  cursor: pointer;
+}
+
+.wpcf7-acceptance label {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: normal !important;
+  cursor: pointer;
+}
+
+/* Buttons */
+.wpcf7 input[type="submit"],
+.wpcf7 .cf7-btn-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--cf7-primary);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.8rem 2rem;
+  border: none;
+  border-radius: var(--cf7-radius);
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+  transition: var(--cf7-transition);
+  width: 100%;
+}
+
+.wpcf7 input[type="submit"]:hover,
+.wpcf7 .cf7-btn-submit:hover {
+  background-color: var(--cf7-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.25);
+}
+
+.wpcf7 input[type="submit"]:active {
+  transform: translateY(0);
+}
+
+/* Validation Messages */
+.wpcf7-not-valid-tip {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--cf7-error);
+  margin-top: 0.35rem;
+  font-weight: 500;
+}
+
+.wpcf7-not-valid {
+  border-color: var(--cf7-error) !important;
+  background-color: rgba(220, 38, 38, 0.02) !important;
+}
+
+/* Form Response Banners */
+.wpcf7 form .wpcf7-response-output {
+  margin: 1.5rem 0 0 0;
+  padding: 0.875rem 1.125rem;
+  border-radius: var(--cf7-radius);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.wpcf7 form.sent .wpcf7-response-output {
+  border: 1px solid var(--cf7-success);
+  background-color: rgba(22, 163, 74, 0.08);
+  color: var(--cf7-success);
+}
+
+.wpcf7 form.invalid .wpcf7-response-output,
+.wpcf7 form.failed .wpcf7-response-output {
+  border: 1px solid var(--cf7-error);
+  background-color: rgba(220, 38, 38, 0.08);
+  color: var(--cf7-error);
+}
+
+.wpcf7 form.spam .wpcf7-response-output {
+  border: 1px solid var(--cf7-warning);
+  background-color: rgba(217, 119, 6, 0.08);
+  color: var(--cf7-warning);
+}
+
+/* AJAX Spinner */
+.wpcf7 .wpcf7-spinner {
+  margin: 0.75rem auto 0 auto;
+  display: block;
+}
