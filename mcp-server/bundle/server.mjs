@@ -23287,7 +23287,7 @@ function registerTools(server, wpClient, backupManager, siteManager, integration
 async function main() {
   const server = new McpServer({
     name: "cf7-developer-assistant",
-    version: "1.3.1"
+    version: "1.3.2"
   });
   const siteManager = new MultiSiteManager();
   const wpClient = new WordPressClient();

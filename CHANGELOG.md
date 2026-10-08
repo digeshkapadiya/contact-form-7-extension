@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.2] - 2026-10-08
+
+### Fixed
+- MCP server crashed on a fresh install; it is now bundled (`mcp-server/bundle/server.mjs`).
+
 ## [1.3.1] - 2026-10-08
 
 ### Added
@@ -19,7 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Create/update/restore never saved on a real site.** CF7's REST API only persists when the request carries `context: "save"`; the client now sends it.
 - **Reads had the wrong shape.** CF7 nests `form`, `mail`, `messages` etc. under `properties` (with `form`/`additional_settings` as `{content}` objects). The client now flattens them, so audits, health checks and diffs see real form data.
-- **MCP server crashed on a fresh install** (`node_modules` isn't in git). The server and its dependencies are now bundled into `mcp-server/bundle/server.mjs`, which the plugin runs.
 - MCP server path now uses `${CLAUDE_PLUGIN_ROOT}`.
 
 ## [1.3.0] - 2026-09-24
