@@ -36,7 +36,7 @@
     "cf7-wordpress": {
       "command": "node",
       "args": [
-        "${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"
+        "${CLAUDE_PLUGIN_ROOT}/mcp-server/bundle/server.mjs"
       ],
       "env": {
         "WORDPRESS_URL": "${WORDPRESS_URL:-http://localhost}",

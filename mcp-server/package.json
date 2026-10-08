@@ -8,11 +8,12 @@
     "cf7-lint": "./dist/cli/lint.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run bundle",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
     "lint:cf7": "node dist/cli/lint.js",
-    "test": "node --test test/**/*.test.js"
+    "test": "node --test test/**/*.test.js",
+    "bundle": "esbuild dist/index.js --bundle --platform=node --format=esm --target=node18 --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\" --outfile=bundle/server.mjs --log-level=warning"
   },
   "keywords": [
     "mcp",
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.13.9",
+    "esbuild": "^0.28.2",
     "typescript": "^5.7.3"
   }
 }
