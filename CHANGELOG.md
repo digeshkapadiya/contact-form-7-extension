@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.5] - 2026-10-08
+
+### Added
+- **One-click browser connection** using WordPress's built-in Application Authorization: `wp_connect_start` opens the site's approval page, the user clicks Approve, and `wp_connect_complete` receives the new Application Password on a loopback-only listener (random per-request token), saves the site, and verifies Contact Form 7. The password is never returned to the model.
+- End-to-end integration test that logs into a real WordPress, approves the request, and checks the saved credentials work.
+
+### Changed
+- Connect-first instructions, skills and commands now use the browser flow; Configure options and `wp_add_site` remain as fallbacks.
+- `.cf7-sites.json` is written with 0600 permissions.
+
 ## [1.3.4] - 2026-10-08
 
 ### Added

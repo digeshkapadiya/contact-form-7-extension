@@ -63,7 +63,8 @@ export class MultiSiteManager {
       activeSiteId: this.activeSiteId,
       sites: list
     };
-    fs.writeFileSync(this.configPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.writeFileSync(this.configPath, JSON.stringify(data, null, 2), { encoding: 'utf-8', mode: 0o600 });
+    try { fs.chmodSync(this.configPath, 0o600); } catch { /* best effort on non-POSIX systems */ }
   }
 
   public listSites(): Array<Omit<SiteConfig, 'applicationPassword'> & { isActive: boolean; hasAuth: boolean }> {

@@ -26,4 +26,5 @@ if [ -n "${CF7_IT_KEEP:-}" ]; then
   echo "Site kept running at $WORDPRESS_URL (user admin, app password: $APP_PW). Stop with: docker rm -f $WP $DB; docker network rm $NET"
   exit 0
 fi
-node --test integration/integration.test.mjs
+export WORDPRESS_ADMIN_PASSWORD=adminpass
+node --test integration/*.test.mjs

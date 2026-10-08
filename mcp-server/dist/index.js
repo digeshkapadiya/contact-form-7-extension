@@ -12,14 +12,14 @@ import { registerTools } from './tools/index.js';
 async function main() {
     const server = new McpServer({
         name: 'cf7-developer-assistant',
-        version: '1.3.4'
+        version: '1.3.5'
     }, {
         instructions: [
             'CONNECT FIRST: before any action on a WordPress site (listing, reading, auditing, creating, updating, testing forms), call wp_check_connection.',
-            'If it reports connected: false or "No WordPress site connected", STOP. Do not draft-and-create. Ask the user to connect their WordPress site:',
-            '(1) preferred: /plugin -> cf7-developer-assistant -> Configure options, enter site URL, username and an Application Password (WordPress admin -> Users -> Profile -> Application Passwords); or',
-            '(2) give you the site URL, username and application password so you can call wp_add_site then wp_select_site.',
-            'Also ask whether the site is staging or production, and recommend trying staging first. After connecting, call wp_check_connection again and confirm Contact Form 7 was detected before creating or changing anything.',
+            'If it reports connected: false or "No WordPress site connected", STOP. Do not draft-and-create. Ask the user for their site URL and whether it is staging or production (recommend staging first).',
+            'Then connect with the browser flow: call wp_connect_start with the URL. It opens the WordPress admin approval page; tell the user to log in if asked and click "Yes, I approve of this connection". Then call wp_connect_complete. No password is copied or pasted.',
+            'Fallbacks: /plugin -> cf7-developer-assistant -> Configure options (site URL, username, Application Password), or wp_add_site if the browser is not on the same computer as Claude Code.',
+            'After wp_connect_complete reports connected and contactForm7Detected, show the existing forms and only then create or change anything.',
             'Never create or modify forms on a site the user has not confirmed.'
         ].join('\n')
     });

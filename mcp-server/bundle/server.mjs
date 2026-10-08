@@ -3733,7 +3733,7 @@ var require_schemes = __commonJS({
       urnComponent.nss = (uuidComponent.uuid || "").toLowerCase();
       return urnComponent;
     }
-    var http = (
+    var http2 = (
       /** @type {SchemeHandler} */
       {
         scheme: "http",
@@ -3746,7 +3746,7 @@ var require_schemes = __commonJS({
       /** @type {SchemeHandler} */
       {
         scheme: "https",
-        domainHost: http.domainHost,
+        domainHost: http2.domainHost,
         parse: httpParse,
         serialize: httpSerialize
       }
@@ -3790,7 +3790,7 @@ var require_schemes = __commonJS({
     var SCHEMES = (
       /** @type {Record<SchemeName, SchemeHandler>} */
       {
-        http,
+        http: http2,
         https,
         ws,
         wss,
@@ -21705,7 +21705,11 @@ var MultiSiteManager = class {
       activeSiteId: this.activeSiteId,
       sites: list
     };
-    fs2.writeFileSync(this.configPath, JSON.stringify(data, null, 2), "utf-8");
+    fs2.writeFileSync(this.configPath, JSON.stringify(data, null, 2), { encoding: "utf-8", mode: 384 });
+    try {
+      fs2.chmodSync(this.configPath, 384);
+    } catch {
+    }
   }
   listSites() {
     return Array.from(this.sites.values()).map((s) => ({
@@ -22744,6 +22748,138 @@ Description:
   }
 };
 
+// dist/connect/authorize.js
+import * as http from "http";
+import * as crypto from "crypto";
+import { spawn } from "child_process";
+var APP_ID = "7d0d3a56-5c1e-4b0a-9f6e-cf7a551a0001";
+var APP_NAME = "Claude CF7 Developer Assistant";
+var SUCCESS_PAGE = `<!doctype html><meta charset="utf-8"><title>Connected</title>
+<body style="font-family:system-ui;max-width:32rem;margin:15vh auto;padding:0 1rem;text-align:center">
+<h1>Connected</h1><p>Your WordPress site is linked. You can close this tab and return to Claude Code.</p></body>`;
+var REJECT_PAGE = `<!doctype html><meta charset="utf-8"><title>Not connected</title>
+<body style="font-family:system-ui;max-width:32rem;margin:15vh auto;padding:0 1rem;text-align:center">
+<h1>Not connected</h1><p>You declined the request. Return to Claude Code to try again.</p></body>`;
+function normalizeSiteUrl(raw) {
+  let u = raw.trim();
+  if (!/^https?:\/\//i.test(u))
+    u = `https://${u}`;
+  const parsed = new URL(u);
+  return parsed.origin + parsed.pathname.replace(/\/+$/, "");
+}
+function buildAuthorizeUrl(siteUrl, port, state) {
+  const base = `http://127.0.0.1:${port}`;
+  const params = new URLSearchParams({
+    app_name: APP_NAME,
+    app_id: APP_ID,
+    success_url: `${base}/callback?state=${state}`,
+    reject_url: `${base}/rejected?state=${state}`
+  });
+  return `${siteUrl}/wp-admin/authorize-application.php?${params.toString()}`;
+}
+function openInBrowser(url) {
+  try {
+    let cmd;
+    let args;
+    if (process.platform === "darwin") {
+      cmd = "open";
+      args = [url];
+    } else if (process.platform === "win32") {
+      cmd = "rundll32";
+      args = ["url.dll,FileProtocolHandler", url];
+    } else {
+      cmd = "xdg-open";
+      args = [url];
+    }
+    const child = spawn(cmd, args, { stdio: "ignore", detached: true });
+    child.on("error", () => {
+    });
+    child.unref();
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function startAuthorization(siteUrl, ttlMs = 10 * 60 * 1e3) {
+  const state = crypto.randomBytes(16).toString("hex");
+  const pending = {
+    state,
+    startedAt: Date.now(),
+    closed: false,
+    waiters: []
+  };
+  const notify = () => {
+    const w = pending.waiters.splice(0);
+    w.forEach((fn) => fn());
+  };
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url || "/", "http://127.0.0.1");
+    const okState = url.searchParams.get("state") === state;
+    const page = (code, body) => {
+      res.writeHead(code, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+      res.end(body);
+    };
+    if (!okState)
+      return page(400, "Invalid or expired request.");
+    if (url.pathname === "/callback") {
+      const username = url.searchParams.get("user_login");
+      const password = url.searchParams.get("password");
+      if (!username || !password)
+        return page(400, "Missing credentials.");
+      pending.result = { siteUrl: url.searchParams.get("site_url") || siteUrl, username, password };
+      page(200, SUCCESS_PAGE);
+      notify();
+      setTimeout(pending.close, 500);
+      return;
+    }
+    if (url.pathname === "/rejected") {
+      pending.rejected = true;
+      page(200, REJECT_PAGE);
+      notify();
+      setTimeout(pending.close, 500);
+      return;
+    }
+    page(404, "Not found");
+  });
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => resolve());
+  });
+  server.unref();
+  const port = server.address().port;
+  const timer = setTimeout(() => pending.close(), ttlMs);
+  timer.unref();
+  pending.port = port;
+  pending.authUrl = buildAuthorizeUrl(siteUrl, port, state);
+  pending.close = () => {
+    if (pending.closed)
+      return;
+    pending.closed = true;
+    clearTimeout(timer);
+    server.close();
+    server.closeAllConnections?.();
+    notify();
+  };
+  return pending;
+}
+function waitForAuthorization(pending, timeoutMs) {
+  if (pending.result || pending.rejected || pending.closed)
+    return Promise.resolve();
+  return new Promise((resolve) => {
+    const t = setTimeout(() => {
+      const i = pending.waiters.indexOf(done);
+      if (i >= 0)
+        pending.waiters.splice(i, 1);
+      resolve();
+    }, timeoutMs);
+    const done = () => {
+      clearTimeout(t);
+      resolve();
+    };
+    pending.waiters.push(done);
+  });
+}
+
 // dist/tools/index.js
 function registerTools(server, wpClient, backupManager, siteManager, integrationManager) {
   const getActiveClient = (siteId) => {
@@ -22805,6 +22941,114 @@ function registerTools(server, wpClient, backupManager, siteManager, integration
           }, null, 2)
         }
       ]
+    };
+  });
+  const pendingAuths = /* @__PURE__ */ new Map();
+  server.tool("wp_connect_start", 'Start connecting a WordPress site through the browser. Returns a WordPress admin URL (and tries to open it) where the user clicks "Approve"; no password needs to be copied. Then call wp_connect_complete.', {
+    url: external_exports.string().describe("WordPress site URL, e.g. https://example.com"),
+    environment: external_exports.enum(["production", "staging", "local"]).optional().describe("Type of site. Ask the user; recommend staging first."),
+    name: external_exports.string().optional().describe("Friendly site name"),
+    open_browser: external_exports.boolean().optional().default(true).describe("Try to open the approval page in the default browser")
+  }, async ({ url, environment, name, open_browser }) => {
+    let siteUrl;
+    try {
+      siteUrl = normalizeSiteUrl(url);
+    } catch {
+      throw new Error(`"${url}" is not a valid site URL. Use something like https://example.com`);
+    }
+    const existing = pendingAuths.get(siteUrl);
+    if (existing)
+      existing.pending.close();
+    const pending = await startAuthorization(siteUrl);
+    const isLocalUrl = /localhost|127\.0\.0\.1|\.local\b|\.test\b/i.test(siteUrl);
+    pendingAuths.set(siteUrl, { pending, environment: environment || (isLocalUrl ? "local" : "production"), name });
+    const opened = open_browser === false ? false : openInBrowser(pending.authUrl);
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            status: "waiting_for_approval",
+            site: siteUrl,
+            approvalUrl: pending.authUrl,
+            browserOpened: opened,
+            next: 'Tell the user to open approvalUrl (if it did not open), log in to WordPress if asked, and click "Yes, I approve of this connection". Then call wp_connect_complete with the same url.',
+            note: "This only works if the browser is on the same computer as Claude Code. Otherwise use Configure options or wp_add_site."
+          }, null, 2)
+        }
+      ]
+    };
+  });
+  server.tool("wp_connect_complete", "Finish connecting a WordPress site after the user approved it in the browser. Waits for the approval, saves the site, selects it, and verifies Contact Form 7.", {
+    url: external_exports.string().describe("The same site URL given to wp_connect_start"),
+    wait_seconds: external_exports.number().optional().default(90).describe("How long to wait for approval (max 240)")
+  }, async ({ url, wait_seconds }) => {
+    const siteUrl = normalizeSiteUrl(url);
+    const entry = pendingAuths.get(siteUrl);
+    if (!entry) {
+      throw new Error(`No pending connection for ${siteUrl}. Call wp_connect_start first.`);
+    }
+    const { pending } = entry;
+    await waitForAuthorization(pending, Math.min(Math.max(wait_seconds ?? 90, 1), 240) * 1e3);
+    if (pending.rejected) {
+      pendingAuths.delete(siteUrl);
+      return { content: [{ type: "text", text: JSON.stringify({ status: "declined", message: "The connection was declined in WordPress. Run wp_connect_start again to retry." }, null, 2) }] };
+    }
+    if (!pending.result) {
+      const expired = pending.closed;
+      if (expired)
+        pendingAuths.delete(siteUrl);
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            status: expired ? "expired" : "still_waiting",
+            message: expired ? "The approval window expired. Run wp_connect_start again." : 'No approval yet. Ask the user to click "Approve" in the browser, then call wp_connect_complete again.'
+          }, null, 2)
+        }]
+      };
+    }
+    const { username, password } = pending.result;
+    pendingAuths.delete(siteUrl);
+    const host = new URL(siteUrl).host.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase();
+    const siteId = host || "site";
+    siteManager.addSite({
+      id: siteId,
+      name: entry.name || host,
+      baseUrl: siteUrl,
+      username,
+      applicationPassword: password,
+      environment: entry.environment
+    });
+    siteManager.setActiveSite(siteId);
+    const client = new WordPressClient({ baseUrl: siteUrl, username, applicationPassword: password });
+    const check2 = await client.checkConnection();
+    let forms = [];
+    let authWorks = false;
+    if (check2.connected && check2.hasCf7) {
+      try {
+        forms = (await client.listForms()).map((f) => ({ id: f.id, title: f.title }));
+        authWorks = true;
+      } catch {
+        authWorks = false;
+      }
+    }
+    return {
+      content: [{
+        type: "text",
+        text: JSON.stringify({
+          status: "connected",
+          siteId,
+          site: siteUrl,
+          username,
+          environment: entry.environment,
+          wordpress: check2.siteName,
+          contactForm7Detected: check2.hasCf7,
+          credentialsWork: authWorks,
+          forms,
+          message: check2.hasCf7 ? "Site connected and selected. You can now create or edit forms." : "Connected to WordPress, but Contact Form 7 was not detected. Ask the user to install and activate Contact Form 7 (and use pretty permalinks)."
+        }, null, 2)
+      }]
     };
   });
   server.tool("wp_select_site", "Switch active WordPress site context.", {
@@ -23299,14 +23543,14 @@ function registerTools(server, wpClient, backupManager, siteManager, integration
 async function main() {
   const server = new McpServer({
     name: "cf7-developer-assistant",
-    version: "1.3.4"
+    version: "1.3.5"
   }, {
     instructions: [
       "CONNECT FIRST: before any action on a WordPress site (listing, reading, auditing, creating, updating, testing forms), call wp_check_connection.",
-      'If it reports connected: false or "No WordPress site connected", STOP. Do not draft-and-create. Ask the user to connect their WordPress site:',
-      "(1) preferred: /plugin -> cf7-developer-assistant -> Configure options, enter site URL, username and an Application Password (WordPress admin -> Users -> Profile -> Application Passwords); or",
-      "(2) give you the site URL, username and application password so you can call wp_add_site then wp_select_site.",
-      "Also ask whether the site is staging or production, and recommend trying staging first. After connecting, call wp_check_connection again and confirm Contact Form 7 was detected before creating or changing anything.",
+      'If it reports connected: false or "No WordPress site connected", STOP. Do not draft-and-create. Ask the user for their site URL and whether it is staging or production (recommend staging first).',
+      'Then connect with the browser flow: call wp_connect_start with the URL. It opens the WordPress admin approval page; tell the user to log in if asked and click "Yes, I approve of this connection". Then call wp_connect_complete. No password is copied or pasted.',
+      "Fallbacks: /plugin -> cf7-developer-assistant -> Configure options (site URL, username, Application Password), or wp_add_site if the browser is not on the same computer as Claude Code.",
+      "After wp_connect_complete reports connected and contactForm7Detected, show the existing forms and only then create or change anything.",
       "Never create or modify forms on a site the user has not confirmed."
     ].join("\n")
   });

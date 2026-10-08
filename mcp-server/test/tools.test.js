@@ -58,9 +58,9 @@ const wp = (url, opts = {}) => {
   return { status: 404, body: {} };
 };
 
-test('registers all 21 tools', () => {
+test('registers all 23 tools', () => {
   const t = setup(wp);
-  try { assert.strictEqual(Object.keys(t.tools).length, 21); } finally { t.cleanup(); }
+  try { assert.strictEqual(Object.keys(t.tools).length, 23); } finally { t.cleanup(); }
 });
 
 test('multi-site: add, list, select, and unknown-site error', async () => {

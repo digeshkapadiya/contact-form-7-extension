@@ -82,6 +82,8 @@ export WORDPRESS_APP_PASSWORD="xxxx xxxx xxxx xxxx xxxx xxxx"
 | :--- | :--- | :--- |
 | `wp_list_sites` | Multi-Site | List all configured WordPress sites with active status and environments. |
 | `wp_add_site` | Multi-Site | Register a new WordPress site (production/staging/local) with isolated auth. |
+| `wp_connect_start` | Connect | Open WordPress admin so the user can click Approve (no password copying). |
+| `wp_connect_complete` | Connect | Receive the approval, save and select the site, verify Contact Form 7. |
 | `wp_select_site` | Multi-Site | Switch active working site context. |
 | `wp_check_connection` | Connectivity | Verify WordPress connectivity, core version, and CF7 plugin detection. |
 | `cf7_list_forms` | Forms | List all contact forms (ID, title, shortcode) on the active site. |
@@ -124,7 +126,7 @@ export WORDPRESS_APP_PASSWORD="xxxx xxxx xxxx xxxx xxxx xxxx"
 /plugin install cf7-developer-assistant@cf7-developer-tools
 ```
 
-Run `/cf7-developer-assistant:connect` first to link your WordPress site. The plugin always checks the connection and asks you to connect before creating or changing anything.
+Run `/cf7-developer-assistant:connect` first. Claude asks for your site URL, opens your WordPress admin in the browser, you click **Approve**, and you are back in Claude Code with the site connected (no password copying). The plugin always checks the connection and asks you to connect before creating or changing anything. This needs the browser on the same computer as Claude Code; otherwise use Configure options below.
 
 Slash commands: `/cf7-developer-assistant:connect`, `/cf7-developer-assistant:audit`, `:new-form`, `:health-check`, `:diagnose-delivery`.
 

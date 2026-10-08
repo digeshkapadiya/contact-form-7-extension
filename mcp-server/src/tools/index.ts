@@ -15,6 +15,7 @@ import { IntegrationManager } from '../integrations/manager.js';
 import { IntegrationTester } from '../integrations/tester.js';
 import { IntegrationPhpGenerator } from '../integrations/php-generator.js';
 import { TemplateManager } from '../templates/manager.js';
+import { startAuthorization, waitForAuthorization, openInBrowser, normalizeSiteUrl, PendingAuth } from '../connect/authorize.js';
 import { readEnv } from '../wordpress/env.js';
 
 export function registerTools(
@@ -102,6 +103,135 @@ export function registerTools(
             }, null, 2)
           }
         ]
+      };
+    }
+  );
+
+  // Pending browser authorizations, keyed by normalized site URL
+  const pendingAuths = new Map<string, { pending: PendingAuth; environment: 'production' | 'staging' | 'local'; name?: string }>();
+
+  server.tool(
+    'wp_connect_start',
+    'Start connecting a WordPress site through the browser. Returns a WordPress admin URL (and tries to open it) where the user clicks "Approve"; no password needs to be copied. Then call wp_connect_complete.',
+    {
+      url: z.string().describe('WordPress site URL, e.g. https://example.com'),
+      environment: z.enum(['production', 'staging', 'local']).optional().describe('Type of site. Ask the user; recommend staging first.'),
+      name: z.string().optional().describe('Friendly site name'),
+      open_browser: z.boolean().optional().default(true).describe('Try to open the approval page in the default browser')
+    },
+    async ({ url, environment, name, open_browser }: { url: string; environment?: 'production' | 'staging' | 'local'; name?: string; open_browser?: boolean }) => {
+      let siteUrl: string;
+      try {
+        siteUrl = normalizeSiteUrl(url);
+      } catch {
+        throw new Error(`"${url}" is not a valid site URL. Use something like https://example.com`);
+      }
+      const existing = pendingAuths.get(siteUrl);
+      if (existing) existing.pending.close();
+
+      const pending = await startAuthorization(siteUrl);
+      const isLocalUrl = /localhost|127\.0\.0\.1|\.local\b|\.test\b/i.test(siteUrl);
+      pendingAuths.set(siteUrl, { pending, environment: environment || (isLocalUrl ? 'local' : 'production'), name });
+
+      const opened = open_browser === false ? false : openInBrowser(pending.authUrl);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              status: 'waiting_for_approval',
+              site: siteUrl,
+              approvalUrl: pending.authUrl,
+              browserOpened: opened,
+              next: 'Tell the user to open approvalUrl (if it did not open), log in to WordPress if asked, and click "Yes, I approve of this connection". Then call wp_connect_complete with the same url.',
+              note: 'This only works if the browser is on the same computer as Claude Code. Otherwise use Configure options or wp_add_site.'
+            }, null, 2)
+          }
+        ]
+      };
+    }
+  );
+
+  server.tool(
+    'wp_connect_complete',
+    'Finish connecting a WordPress site after the user approved it in the browser. Waits for the approval, saves the site, selects it, and verifies Contact Form 7.',
+    {
+      url: z.string().describe('The same site URL given to wp_connect_start'),
+      wait_seconds: z.number().optional().default(90).describe('How long to wait for approval (max 240)')
+    },
+    async ({ url, wait_seconds }: { url: string; wait_seconds?: number }) => {
+      const siteUrl = normalizeSiteUrl(url);
+      const entry = pendingAuths.get(siteUrl);
+      if (!entry) {
+        throw new Error(`No pending connection for ${siteUrl}. Call wp_connect_start first.`);
+      }
+      const { pending } = entry;
+      await waitForAuthorization(pending, Math.min(Math.max(wait_seconds ?? 90, 1), 240) * 1000);
+
+      if (pending.rejected) {
+        pendingAuths.delete(siteUrl);
+        return { content: [{ type: 'text', text: JSON.stringify({ status: 'declined', message: 'The connection was declined in WordPress. Run wp_connect_start again to retry.' }, null, 2) }] };
+      }
+      if (!pending.result) {
+        const expired = pending.closed;
+        if (expired) pendingAuths.delete(siteUrl);
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              status: expired ? 'expired' : 'still_waiting',
+              message: expired
+                ? 'The approval window expired. Run wp_connect_start again.'
+                : 'No approval yet. Ask the user to click "Approve" in the browser, then call wp_connect_complete again.'
+            }, null, 2)
+          }]
+        };
+      }
+
+      const { username, password } = pending.result;
+      pendingAuths.delete(siteUrl);
+      const host = new URL(siteUrl).host.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase();
+      const siteId = host || 'site';
+      siteManager.addSite({
+        id: siteId,
+        name: entry.name || host,
+        baseUrl: siteUrl,
+        username,
+        applicationPassword: password,
+        environment: entry.environment
+      });
+      siteManager.setActiveSite(siteId);
+
+      const client = new WordPressClient({ baseUrl: siteUrl, username, applicationPassword: password });
+      const check = await client.checkConnection();
+      let forms: Array<{ id: number; title: string }> = [];
+      let authWorks = false;
+      if (check.connected && check.hasCf7) {
+        try {
+          forms = (await client.listForms()).map(f => ({ id: f.id, title: f.title }));
+          authWorks = true;
+        } catch {
+          authWorks = false;
+        }
+      }
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            status: 'connected',
+            siteId,
+            site: siteUrl,
+            username,
+            environment: entry.environment,
+            wordpress: check.siteName,
+            contactForm7Detected: check.hasCf7,
+            credentialsWork: authWorks,
+            forms,
+            message: check.hasCf7
+              ? 'Site connected and selected. You can now create or edit forms.'
+              : 'Connected to WordPress, but Contact Form 7 was not detected. Ask the user to install and activate Contact Form 7 (and use pretty permalinks).'
+          }, null, 2)
+        }]
       };
     }
   );

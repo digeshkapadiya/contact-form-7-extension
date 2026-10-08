@@ -13,12 +13,13 @@ Use this skill to audit and harden Contact Form 7 forms, eliminate bot spam, and
 
 Before any live-site action (list, read, audit, create, update, test), call `wp_check_connection`.
 
-If it is not connected, **stop and ask the user to connect their site** before drafting-and-creating. Ask for:
-1. **Site URL** (e.g. `https://example.com`) and whether it is **staging or production**. Recommend staging first.
-2. **WordPress username** and an **Application Password** (WordPress admin -> Users -> Profile -> Application Passwords -> Add).
-3. Preferred way to store them: `/plugin` -> cf7-developer-assistant -> **Configure options** (password kept as a sensitive value). Otherwise call `wp_add_site` and `wp_select_site` with the details the user gives you.
+If it is not connected, **stop and connect the user's site before drafting-and-creating**:
+1. Ask for the **site URL** (e.g. `https://example.com`) and whether it is **staging or production**. Recommend staging first.
+2. Call `wp_connect_start` with the URL. It opens the WordPress admin approval page in the user's browser. Tell the user to log in if asked and click **"Yes, I approve of this connection"**. No password is copied or pasted.
+3. Call `wp_connect_complete`. If it says `still_waiting`, ask the user to approve and call it again.
+4. Fallbacks (e.g. Claude Code runs on a different computer than the browser): `/plugin` -> cf7-developer-assistant -> **Configure options**, or `wp_add_site` with an Application Password the user provides.
 
-Then re-run `wp_check_connection` and confirm Contact Form 7 is detected. Only then create or change anything. If the user only wants markup or code (no live site), skip this step and say the form will not be created on a site.
+Confirm `contactForm7Detected` is true and show the existing forms. Only then create or change anything. If the user only wants markup or code (no live site), skip this step and say the form will not be created on a site.
 
 ---
 
