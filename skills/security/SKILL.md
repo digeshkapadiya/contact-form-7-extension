@@ -9,6 +9,19 @@ Use this skill to audit and harden Contact Form 7 forms, eliminate bot spam, and
 
 ---
 
+## Step 0: Connect the WordPress Site First
+
+Before any live-site action (list, read, audit, create, update, test), call `wp_check_connection`.
+
+If it is not connected, **stop and ask the user to connect their site** before drafting-and-creating. Ask for:
+1. **Site URL** (e.g. `https://example.com`) and whether it is **staging or production**. Recommend staging first.
+2. **WordPress username** and an **Application Password** (WordPress admin -> Users -> Profile -> Application Passwords -> Add).
+3. Preferred way to store them: `/plugin` -> cf7-developer-assistant -> **Configure options** (password kept as a sensitive value). Otherwise call `wp_add_site` and `wp_select_site` with the details the user gives you.
+
+Then re-run `wp_check_connection` and confirm Contact Form 7 is detected. Only then create or change anything. If the user only wants markup or code (no live site), skip this step and say the form will not be created on a site.
+
+---
+
 ## Defense-in-Depth Spam Protection Strategy
 
 Combining multiple lightweight spam protection methods yields near-zero spam without compromising user experience.

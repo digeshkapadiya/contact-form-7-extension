@@ -8,3 +8,6 @@ The MCP server reads `WORDPRESS_URL`, `WORDPRESS_USERNAME` and `WORDPRESS_APP_PA
 
 ## Safety defaults
 `cf7_test_submission` is locked on production sites, and `cf7_update_form` snapshots to `.cf7-backups/` before writing.
+
+## Stored site credentials
+`wp_add_site` saves the site (including its application password) to `.cf7-sites.json` in the folder where Claude Code runs. Prefer the plugin's Configure options, which store the password as a sensitive value. If you do use `wp_add_site`, never commit `.cf7-sites.json` (it is in `.gitignore` here) and revoke the application password when finished.

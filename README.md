@@ -124,7 +124,9 @@ export WORDPRESS_APP_PASSWORD="xxxx xxxx xxxx xxxx xxxx xxxx"
 /plugin install cf7-developer-assistant@cf7-developer-tools
 ```
 
-Slash commands: `/cf7-developer-assistant:audit`, `:new-form`, `:health-check`, `:diagnose-delivery`.
+Run `/cf7-developer-assistant:connect` first to link your WordPress site. The plugin always checks the connection and asks you to connect before creating or changing anything.
+
+Slash commands: `/cf7-developer-assistant:connect`, `/cf7-developer-assistant:audit`, `:new-form`, `:health-check`, `:diagnose-delivery`.
 
 ### Method 1: Local Installation in Claude Code
 

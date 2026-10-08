@@ -4,3 +4,5 @@ node_modules/
 *.xlsx
 *.csv
 .DS_Store
+.cf7-sites.json
+.cf7-integrations.json

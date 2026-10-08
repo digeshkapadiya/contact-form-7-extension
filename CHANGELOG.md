@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.4] - 2026-10-08
+
+### Added
+- **Connect-first flow:** the MCP server now sends instructions telling Claude to run `wp_check_connection` and ask the user to connect their WordPress site (URL, username, Application Password, staging vs production) before creating or changing anything. The same step is in the create-form, configure-mail, debug-form, security and validation skills and in every command.
+- `/connect` command to link or switch the WordPress site.
+- `.cf7-sites.json` and `.cf7-integrations.json` added to `.gitignore`; credential-storage note in `SECURITY.md`.
+
 ## [1.3.3] - 2026-10-08
 
 ### Added

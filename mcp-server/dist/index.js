@@ -12,7 +12,16 @@ import { registerTools } from './tools/index.js';
 async function main() {
     const server = new McpServer({
         name: 'cf7-developer-assistant',
-        version: '1.3.3'
+        version: '1.3.4'
+    }, {
+        instructions: [
+            'CONNECT FIRST: before any action on a WordPress site (listing, reading, auditing, creating, updating, testing forms), call wp_check_connection.',
+            'If it reports connected: false or "No WordPress site connected", STOP. Do not draft-and-create. Ask the user to connect their WordPress site:',
+            '(1) preferred: /plugin -> cf7-developer-assistant -> Configure options, enter site URL, username and an Application Password (WordPress admin -> Users -> Profile -> Application Passwords); or',
+            '(2) give you the site URL, username and application password so you can call wp_add_site then wp_select_site.',
+            'Also ask whether the site is staging or production, and recommend trying staging first. After connecting, call wp_check_connection again and confirm Contact Form 7 was detected before creating or changing anything.',
+            'Never create or modify forms on a site the user has not confirmed.'
+        ].join('\n')
     });
     const siteManager = new MultiSiteManager();
     const wpClient = new WordPressClient();
