@@ -217,3 +217,12 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for deta
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Reading form submissions with Claude
+
+Contact Form 7 does not keep submissions. To let Claude read them:
+
+1. Zip `wordpress-plugin/cf7-submissions-bridge` and upload it in WordPress (Plugins > Add New > Upload Plugin), then activate it. Flamingo is optional; if it is active its messages are read too.
+2. Ask Claude, for example: "show the latest 10 submissions of form 7", "find submissions mentioning refund", or run `/submissions`.
+
+Only submissions received after the Bridge is activated are captured by the Bridge; Flamingo history is available immediately. Access needs an Administrator (or Flamingo editor) connection.

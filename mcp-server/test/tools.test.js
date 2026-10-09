@@ -58,9 +58,9 @@ const wp = (url, opts = {}) => {
   return { status: 404, body: {} };
 };
 
-test('registers all 23 tools', () => {
+test('registers all 25 tools', () => {
   const t = setup(wp);
-  try { assert.strictEqual(Object.keys(t.tools).length, 23); } finally { t.cleanup(); }
+  try { assert.strictEqual(Object.keys(t.tools).length, 25); } finally { t.cleanup(); }
 });
 
 test('multi-site: add, list, select, and unknown-site error', async () => {
@@ -166,5 +166,30 @@ test('cf7_test_submission refuses production without confirmation', async () => 
     catch (e) { out = String(e.message); }
     assert.ok(!t.calls.some(c => /feedback/.test(c.url)), 'no submission was sent');
     assert.match(out, /production|confirm/i);
+  } finally { t.cleanup(); }
+});
+
+test('cf7_get_submissions passes filters to the bridge endpoint and fetches one by id', async () => {
+  const t = setup((url) => {
+    if (url.includes('/cf7-bridge/v1/submissions/flamingo-5')) return { body: { id: 'flamingo-5', fields: { 'your-name': 'Ann' } } };
+    if (url.includes('/cf7-bridge/v1/submissions')) return { body: { source: 'flamingo', total: 1, items: [{ id: 'flamingo-5' }] } };
+    return { status: 404, body: {} };
+  });
+  try {
+    const list = await t.call('cf7_get_submissions', { form_id: 7, search: 'Ann', limit: 5, page: 1, source: 'auto', include_spam: false });
+    assert.strictEqual(list.total, 1);
+    const url = new URL(t.calls[0].url);
+    assert.strictEqual(url.pathname, '/wp-json/cf7-bridge/v1/submissions');
+    assert.strictEqual(url.searchParams.get('form_id'), '7');
+    assert.strictEqual(url.searchParams.get('search'), 'Ann');
+    assert.strictEqual(url.searchParams.get('per_page'), '5');
+    assert.strictEqual((await t.call('cf7_get_submissions', { id: 'flamingo-5' })).fields['your-name'], 'Ann');
+  } finally { t.cleanup(); }
+});
+
+test('cf7_get_submissions explains a missing Bridge plugin', async () => {
+  const t = setup(() => ({ status: 404, body: { code: 'rest_no_route' } }));
+  try {
+    await assert.rejects(() => t.call('cf7_get_submissions', {}), /Submissions Bridge plugin is not active/);
   } finally { t.cleanup(); }
 });

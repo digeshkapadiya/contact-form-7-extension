@@ -16,7 +16,7 @@ async function main() {
   const server = new McpServer(
     {
       name: 'cf7-developer-assistant',
-      version: '1.3.6'
+      version: '1.4.0'
     },
     {
       instructions: [
@@ -26,7 +26,8 @@ async function main() {
         'Fallbacks: /plugin -> cf7-developer-assistant -> Configure options (site URL, username, Application Password), or wp_add_site if the browser is not on the same computer as Claude Code.',
         'wp_check_connection also reports authenticated. If authenticated is false, do NOT try to create or update forms: explain authError to the user and reconnect. A Contact Form 7 "Using $this when not in object context" fatal means the request was not authorized, not that Contact Form 7 needs updating.',
         'After wp_connect_complete reports connected and contactForm7Detected, show the existing forms and only then create or change anything.',
-        'Never create or modify forms on a site the user has not confirmed.'
+        'Never create or modify forms on a site the user has not confirmed.',
+        'To read stored form entries ("show my latest submissions"), use cf7_get_submissions. If it says the CF7 Submissions Bridge plugin is not active, tell the user to install wordpress-plugin/cf7-submissions-bridge; submissions are only captured after it is active. Submissions contain personal data: show only what was asked for.'
       ].join('\n')
     }
   );

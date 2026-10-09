@@ -203,4 +203,34 @@ export class WordPressClient {
         }
         return normalizeForm(await res.json());
     }
+    /**
+     * 6. Submissions (served by the CF7 Submissions Bridge WordPress plugin)
+     */
+    async bridgeGet(path, params = {}) {
+        const qs = new URLSearchParams();
+        for (const [k, v] of Object.entries(params)) {
+            if (v !== undefined && v !== '')
+                qs.set(k, String(v));
+        }
+        const query = qs.toString();
+        const url = `${this.baseUrl}/wp-json/cf7-bridge/v1${path}${query ? `?${query}` : ''}`;
+        const res = await this.fetchWithTimeout(url);
+        if (res.ok)
+            return res.json();
+        const body = await res.text();
+        if (res.status === 404 && /rest_no_route/.test(body)) {
+            throw new Error('The CF7 Submissions Bridge plugin is not active on this site. Install and activate wordpress-plugin/cf7-submissions-bridge ' +
+                '(zip the folder, then Plugins > Add New > Upload Plugin). It stores new submissions and lets Claude read them, including Flamingo messages.');
+        }
+        throw explainHttpFailure('Failed to read submissions', res.status, body);
+    }
+    getSubmissionStatus() {
+        return this.bridgeGet('/status');
+    }
+    listSubmissions(params) {
+        return this.bridgeGet('/submissions', params);
+    }
+    getSubmission(id) {
+        return this.bridgeGet(`/submissions/${encodeURIComponent(id)}`);
+    }
 }

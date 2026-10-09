@@ -45,4 +45,19 @@ export declare class WordPressClient {
      * 5. Update existing Contact Form 7 form
      */
     updateForm(formId: number, params: Partial<Omit<CF7FormItem, 'id'>>): Promise<CF7FormItem>;
+    /**
+     * 6. Submissions (served by the CF7 Submissions Bridge WordPress plugin)
+     */
+    private bridgeGet;
+    getSubmissionStatus(): Promise<any>;
+    listSubmissions(params: {
+        form_id?: number;
+        search?: string;
+        after?: string;
+        source?: 'auto' | 'bridge' | 'flamingo';
+        per_page?: number;
+        page?: number;
+        include_spam?: boolean;
+    }): Promise<any>;
+    getSubmission(id: string): Promise<any>;
 }

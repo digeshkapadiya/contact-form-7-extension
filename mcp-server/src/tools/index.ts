@@ -401,6 +401,52 @@ export function registerTools(
     }
   );
 
+  /**
+   * Stored submissions (CF7 Submissions Bridge plugin / Flamingo)
+   */
+
+  server.tool(
+    'cf7_submissions_status',
+    'Check whether form submissions are being stored on the connected WordPress site (CF7 Submissions Bridge plugin and/or Flamingo) and how many exist.',
+    { site_id: z.string().optional().describe('Optional site ID') },
+    async ({ site_id }: { site_id?: string }) => {
+      const { client } = getActiveClient(site_id);
+      const status = await client.getSubmissionStatus();
+      return { content: [{ type: 'text', text: JSON.stringify(status, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    'cf7_get_submissions',
+    'Retrieve stored Contact Form 7 / Flamingo submissions from WordPress, newest first. Filter by form, search text or date. Pass id to fetch one submission in full.',
+    {
+      id: z.string().optional().describe('A single submission id from a previous result, e.g. flamingo-12 or cf7sb-34'),
+      form_id: z.number().optional().describe('Only submissions of this Contact Form 7 form'),
+      search: z.string().optional().describe('Text to search for (name, email, message...)'),
+      after: z.string().optional().describe('Only submissions on or after this date (YYYY-MM-DD or ISO 8601)'),
+      source: z.enum(['auto', 'bridge', 'flamingo']).optional().default('auto').describe('auto uses Flamingo when active, otherwise the Bridge plugin'),
+      limit: z.number().min(1).max(100).optional().default(20),
+      page: z.number().min(1).optional().default(1),
+      include_spam: z.boolean().optional().default(false).describe('Include messages Flamingo marked as spam'),
+      site_id: z.string().optional().describe('Optional site ID')
+    },
+    async (params: any) => {
+      const { client } = getActiveClient(params.site_id);
+      const data = params.id
+        ? await client.getSubmission(params.id)
+        : await client.listSubmissions({
+            form_id: params.form_id,
+            search: params.search,
+            after: params.after,
+            source: params.source,
+            per_page: params.limit,
+            page: params.page,
+            include_spam: params.include_spam
+          });
+      return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
   server.tool(
     'cf7_audit_form',
     'Run deep diagnostics and security/deliverability audit on a specific form.',

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2026-10-09
+
+### Added
+- **Read form submissions from Claude.** New `cf7_get_submissions` and `cf7_submissions_status` tools and a `/submissions` command. Filter by form, search text or date, or fetch one entry in full.
+- **CF7 Submissions Bridge** WordPress plugin (`wordpress-plugin/cf7-submissions-bridge`). Stores every valid Contact Form 7 submission in WordPress (even if the email fails) and serves them, plus Flamingo messages, through `/wp-json/cf7-bridge/v1/`. Restricted to administrators and Flamingo message editors; captcha tokens are not stored; uploads keep file names only.
+- Integration test that submits a real form and reads it back through both Flamingo and the Bridge.
+
 ## [1.3.6] - 2026-10-08
 
 ### Fixed

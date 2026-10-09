@@ -21627,6 +21627,35 @@ var WordPressClient = class {
     }
     return normalizeForm(await res.json());
   }
+  /**
+   * 6. Submissions (served by the CF7 Submissions Bridge WordPress plugin)
+   */
+  async bridgeGet(path4, params = {}) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== void 0 && v !== "")
+        qs.set(k, String(v));
+    }
+    const query = qs.toString();
+    const url = `${this.baseUrl}/wp-json/cf7-bridge/v1${path4}${query ? `?${query}` : ""}`;
+    const res = await this.fetchWithTimeout(url);
+    if (res.ok)
+      return res.json();
+    const body = await res.text();
+    if (res.status === 404 && /rest_no_route/.test(body)) {
+      throw new Error("The CF7 Submissions Bridge plugin is not active on this site. Install and activate wordpress-plugin/cf7-submissions-bridge (zip the folder, then Plugins > Add New > Upload Plugin). It stores new submissions and lets Claude read them, including Flamingo messages.");
+    }
+    throw explainHttpFailure("Failed to read submissions", res.status, body);
+  }
+  getSubmissionStatus() {
+    return this.bridgeGet("/status");
+  }
+  listSubmissions(params) {
+    return this.bridgeGet("/submissions", params);
+  }
+  getSubmission(id) {
+    return this.bridgeGet(`/submissions/${encodeURIComponent(id)}`);
+  }
 };
 
 // dist/backup/manager.js
@@ -23213,6 +23242,34 @@ function registerTools(server, wpClient, backupManager, siteManager, integration
       ]
     };
   });
+  server.tool("cf7_submissions_status", "Check whether form submissions are being stored on the connected WordPress site (CF7 Submissions Bridge plugin and/or Flamingo) and how many exist.", { site_id: external_exports.string().optional().describe("Optional site ID") }, async ({ site_id }) => {
+    const { client } = getActiveClient(site_id);
+    const status = await client.getSubmissionStatus();
+    return { content: [{ type: "text", text: JSON.stringify(status, null, 2) }] };
+  });
+  server.tool("cf7_get_submissions", "Retrieve stored Contact Form 7 / Flamingo submissions from WordPress, newest first. Filter by form, search text or date. Pass id to fetch one submission in full.", {
+    id: external_exports.string().optional().describe("A single submission id from a previous result, e.g. flamingo-12 or cf7sb-34"),
+    form_id: external_exports.number().optional().describe("Only submissions of this Contact Form 7 form"),
+    search: external_exports.string().optional().describe("Text to search for (name, email, message...)"),
+    after: external_exports.string().optional().describe("Only submissions on or after this date (YYYY-MM-DD or ISO 8601)"),
+    source: external_exports.enum(["auto", "bridge", "flamingo"]).optional().default("auto").describe("auto uses Flamingo when active, otherwise the Bridge plugin"),
+    limit: external_exports.number().min(1).max(100).optional().default(20),
+    page: external_exports.number().min(1).optional().default(1),
+    include_spam: external_exports.boolean().optional().default(false).describe("Include messages Flamingo marked as spam"),
+    site_id: external_exports.string().optional().describe("Optional site ID")
+  }, async (params) => {
+    const { client } = getActiveClient(params.site_id);
+    const data = params.id ? await client.getSubmission(params.id) : await client.listSubmissions({
+      form_id: params.form_id,
+      search: params.search,
+      after: params.after,
+      source: params.source,
+      per_page: params.limit,
+      page: params.page,
+      include_spam: params.include_spam
+    });
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  });
   server.tool("cf7_audit_form", "Run deep diagnostics and security/deliverability audit on a specific form.", {
     form_id: external_exports.number().describe("The ID of the Contact Form 7 form to audit"),
     site_id: external_exports.string().optional().describe("Optional site ID")
@@ -23582,7 +23639,7 @@ function registerTools(server, wpClient, backupManager, siteManager, integration
 async function main() {
   const server = new McpServer({
     name: "cf7-developer-assistant",
-    version: "1.3.6"
+    version: "1.4.0"
   }, {
     instructions: [
       "CONNECT FIRST: before any action on a WordPress site (listing, reading, auditing, creating, updating, testing forms), call wp_check_connection.",
@@ -23591,7 +23648,8 @@ async function main() {
       "Fallbacks: /plugin -> cf7-developer-assistant -> Configure options (site URL, username, Application Password), or wp_add_site if the browser is not on the same computer as Claude Code.",
       'wp_check_connection also reports authenticated. If authenticated is false, do NOT try to create or update forms: explain authError to the user and reconnect. A Contact Form 7 "Using $this when not in object context" fatal means the request was not authorized, not that Contact Form 7 needs updating.',
       "After wp_connect_complete reports connected and contactForm7Detected, show the existing forms and only then create or change anything.",
-      "Never create or modify forms on a site the user has not confirmed."
+      "Never create or modify forms on a site the user has not confirmed.",
+      'To read stored form entries ("show my latest submissions"), use cf7_get_submissions. If it says the CF7 Submissions Bridge plugin is not active, tell the user to install wordpress-plugin/cf7-submissions-bridge; submissions are only captured after it is active. Submissions contain personal data: show only what was asked for.'
     ].join("\n")
   });
   const siteManager = new MultiSiteManager();

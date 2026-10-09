@@ -251,4 +251,46 @@ export class WordPressClient {
 
     return normalizeForm(await res.json());
   }
+  /**
+   * 6. Submissions (served by the CF7 Submissions Bridge WordPress plugin)
+   */
+  private async bridgeGet(path: string, params: Record<string, string | number | boolean | undefined> = {}): Promise<any> {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== '') qs.set(k, String(v));
+    }
+    const query = qs.toString();
+    const url = `${this.baseUrl}/wp-json/cf7-bridge/v1${path}${query ? `?${query}` : ''}`;
+    const res = await this.fetchWithTimeout(url);
+    if (res.ok) return res.json();
+
+    const body = await res.text();
+    if (res.status === 404 && /rest_no_route/.test(body)) {
+      throw new Error(
+        'The CF7 Submissions Bridge plugin is not active on this site. Install and activate wordpress-plugin/cf7-submissions-bridge ' +
+        '(zip the folder, then Plugins > Add New > Upload Plugin). It stores new submissions and lets Claude read them, including Flamingo messages.'
+      );
+    }
+    throw explainHttpFailure('Failed to read submissions', res.status, body);
+  }
+
+  public getSubmissionStatus(): Promise<any> {
+    return this.bridgeGet('/status');
+  }
+
+  public listSubmissions(params: {
+    form_id?: number;
+    search?: string;
+    after?: string;
+    source?: 'auto' | 'bridge' | 'flamingo';
+    per_page?: number;
+    page?: number;
+    include_spam?: boolean;
+  }): Promise<any> {
+    return this.bridgeGet('/submissions', params);
+  }
+
+  public getSubmission(id: string): Promise<any> {
+    return this.bridgeGet(`/submissions/${encodeURIComponent(id)}`);
+  }
 }
