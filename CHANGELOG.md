@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.1] - 2026-10-09
+
+### Changed
+- The MCP server no longer ships an 827 KB bundled file. It now runs the readable compiled code in `mcp-server/dist`, with `@modelcontextprotocol/sdk` and `zod` installed by Claude Code from the root `package-lock.json`. This keeps every file small and reviewable for the Claude plugin directory.
+- Updated `@modelcontextprotocol/sdk` to 1.32.1 (fixes a high-severity advisory). `npm audit` reports 0 vulnerabilities.
+
+### Added
+- README section and SECURITY notes that disclose what the plugin runs, reads, sends and stores, including personal data from submissions.
+
 ## [1.4.0] - 2026-10-09
 
 ### Added

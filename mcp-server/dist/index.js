@@ -12,7 +12,7 @@ import { registerTools } from './tools/index.js';
 async function main() {
     const server = new McpServer({
         name: 'cf7-developer-assistant',
-        version: '1.4.0'
+        version: '1.4.1'
     }, {
         instructions: [
             'CONNECT FIRST: before any action on a WordPress site (listing, reading, auditing, creating, updating, testing forms), call wp_check_connection.',

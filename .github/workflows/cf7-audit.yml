@@ -30,8 +30,8 @@ jobs:
         working-directory: ./mcp-server
         run: npm run build
 
-      - name: Verify committed dist/ and bundle/ are up to date
-        run: git diff --exit-code -- mcp-server/dist mcp-server/bundle
+      - name: Verify committed dist/ is up to date
+        run: git diff --exit-code -- mcp-server/dist
 
       - name: Validate Claude Code plugin and marketplace manifests
         run: |

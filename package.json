@@ -1,0 +1,11 @@
+{
+  "name": "cf7-developer-assistant",
+  "version": "1.4.1",
+  "private": true,
+  "description": "Runtime dependencies of the bundled MCP server (mcp-server/dist). Claude Code installs these from package-lock.json when the plugin is installed.",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "zod": "3.25.76"
+  }
+}

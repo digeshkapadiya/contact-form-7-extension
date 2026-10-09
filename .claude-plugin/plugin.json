@@ -1,6 +1,6 @@
 {
   "name": "cf7-developer-assistant",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Production-grade Claude Code plugin for WordPress developers & agencies to create, configure, debug, validate, secure, style, audit, test, automate, and integrate Contact Form 7 forms with CRMs, Webhooks, Google Sheets, and CI/CD pipelines.",
   "author": {
     "name": "Optimized Theme",
@@ -36,7 +36,7 @@
     "cf7-wordpress": {
       "command": "node",
       "args": [
-        "${CLAUDE_PLUGIN_ROOT}/mcp-server/bundle/server.mjs"
+        "${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"
       ],
       "env": {
         "WORDPRESS_URL": "${user_config.wp_site_url}",

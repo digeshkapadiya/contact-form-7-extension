@@ -200,6 +200,18 @@ When utilizing this plugin:
 
 ---
 
+## What this plugin does on your computer and your site
+
+Everything it runs, reads, sends and stores:
+
+* **Network:** requests go only to the WordPress site you connect (REST API: forms, connection check, and stored submissions). Two tools can contact another address, and only when you ask: `cf7_test_integration` with a live request sends a test payload to the webhook URL you configured, and `cf7_test_submission` submits a synthetic entry to your own form. There is no telemetry and no analytics.
+* **Personal data:** `cf7_get_submissions` reads stored form submissions (names, emails, messages) from your site and shows them to Claude. The data stays in your Claude session; nothing is copied elsewhere. Access needs a WordPress Administrator (or Flamingo message editor) connection.
+* **Browser and local listener:** `wp_connect_start` opens your WordPress approval page in the default browser and starts a short-lived HTTP listener on `127.0.0.1` only, protected by a one-time random token. It closes after approval, rejection or 10 minutes.
+* **Credentials:** the WordPress Application Password is stored as a sensitive plugin setting, or in `.cf7-sites.json` (mode 0600) if you connect through the browser. It is never shown to Claude. Revoke it any time under Users > Profile > Application Passwords.
+* **Files written (in the folder where Claude Code runs):** `.cf7-sites.json` (connected sites), `.cf7-backups/` (a snapshot of a form before every change) and `.cf7-integrations.json` (integration settings).
+* **Changes to your site:** forms are created or edited only after you confirm the site, and every edit is backed up first. The plugin never installs or changes WordPress plugins by itself. Reading submissions needs the separate **CF7 Submissions Bridge** WordPress plugin (`wordpress-plugin/cf7-submissions-bridge`, attached to each GitHub release), which you install yourself. It stores submissions in your WordPress database, ignores captcha tokens, keeps only file names of uploads, and answers only to logged-in administrators.
+* **Dependencies:** the MCP server's source is in `mcp-server/src` and its compiled, unminified output is in `mcp-server/dist`. It needs two npm packages (`@modelcontextprotocol/sdk` and `zod`), which Claude Code installs from the committed `package-lock.json` when you install the plugin. If you run it from a clone instead, run `npm ci` in the repository root first.
+
 ## Security Notes
 
 * **No Secret Exposure**: The assistant never includes hardcoded API keys, passwords, or credentials in form code.

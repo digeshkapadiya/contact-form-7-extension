@@ -14,3 +14,9 @@ The MCP server reads `WORDPRESS_URL`, `WORDPRESS_USERNAME` and `WORDPRESS_APP_PA
 
 ## Browser connection
 `wp_connect_start` runs a temporary HTTP listener bound to `127.0.0.1` only, protected by a random one-time `state` token, and closes it after approval, rejection or 10 minutes. The Application Password is saved to `.cf7-sites.json` (mode 0600) and is never shown to the model. Revoke it any time in WordPress under Users > Profile > Application Passwords (look for "Claude CF7 Developer Assistant").
+
+## Stored submissions
+`cf7_get_submissions` returns personal data submitted through your forms. The CF7 Submissions Bridge WordPress plugin only answers authenticated requests from Administrators or Flamingo message editors, does not store captcha tokens, and keeps only the file names of uploads. Use a dedicated administrator account for the connection and revoke its Application Password when you no longer need access.
+
+## Dependencies
+The MCP server runs the unminified code in `mcp-server/dist`. Its only runtime packages are `@modelcontextprotocol/sdk` and `zod`, pinned by the root `package-lock.json` and checked with `npm audit`.

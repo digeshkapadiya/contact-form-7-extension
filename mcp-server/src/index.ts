@@ -16,7 +16,7 @@ async function main() {
   const server = new McpServer(
     {
       name: 'cf7-developer-assistant',
-      version: '1.4.0'
+      version: '1.4.1'
     },
     {
       instructions: [
